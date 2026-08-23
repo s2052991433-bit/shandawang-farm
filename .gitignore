@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+reference-home.png
+implementation-*.png
+qa-comparison-*.png
+design-qa.md
+AGENTS.md
+.openai/
+worker/
+tests/
+scripts/
+package-lock.json
