@@ -7,6 +7,8 @@ implementation-*.png
 qa-comparison-*.png
 design-qa.md
 AGENTS.md
+备忘.md
+source-assets/
 .openai/
 worker/
 tests/

@@ -117,9 +117,9 @@ h1, h2, h3, p { margin-top: 0; }
 .promo-card span { font: 700 22px/1.3 var(--serif); }
 .promo-card p { margin: 10px 0 20px; color: #536157; font-size: 13px; }
 .promo-card button { background: var(--green); color: white; border: 0; border-radius: 20px; padding: 10px 16px; font-size: 12px; font-weight: 700; cursor: pointer; }
-.card-redeem { background-image: url('/assets/gift-box.png'); background-position: 75% center; }
-.card-gift { background-image: url('/assets/eggs.png'); background-position: 72% center; }
-.card-business { background-image: url('/assets/bayberries.png'); background-position: 68% center; }
+.card-redeem { background-image: url('/assets/gift-box.webp'); background-position: 75% center; }
+.card-gift { background-image: url('/assets/eggs.webp'); background-position: 72% center; }
+.card-business { background-image: url('/assets/bayberries.webp'); background-position: 68% center; }
 .trust-strip { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--oat); border-radius: 15px; margin-bottom: 55px; padding: 22px 24px; }
 .trust-strip > div { display: flex; align-items: center; justify-content: center; gap: 13px; border-right: 1px solid #d7d4cd; }
 .trust-strip > div:last-child { border-right: 0; }
@@ -206,7 +206,7 @@ h1, h2, h3, p { margin-top: 0; }
 .timeline-cards article span { color: var(--green-2); font-size: 11px; font-weight: 700; }
 .timeline-cards h3 { font: 700 21px/1.35 var(--serif); margin: 10px 0; }
 .timeline-cards p { color: var(--muted); line-height: 1.75; font-size: 13px; }
-.next-season { margin-top: 55px; min-height: 370px; border-radius: 20px; padding: 50px; display: flex; align-items: center; background: var(--green) url('/assets/hero-farm.png') center/cover no-repeat; position: relative; overflow: hidden; }
+.next-season { margin-top: 55px; min-height: 370px; border-radius: 20px; padding: 50px; display: flex; align-items: center; background: var(--green) url('/assets/hero-farm.webp') center/cover no-repeat; position: relative; overflow: hidden; }
 .next-season:after { content: ""; position: absolute; inset: 0; background: rgba(14,52,34,.72); }
 .next-season > div { position: relative; z-index: 1; color: white; max-width: 510px; }
 .next-season h2 { font: 700 43px var(--serif); }

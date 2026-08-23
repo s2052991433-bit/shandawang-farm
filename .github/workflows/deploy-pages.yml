@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build website
-        run: pnpm run build:pages
+        run: pnpm run build
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
