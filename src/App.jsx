@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -42,6 +42,13 @@ const products = [
     delivery: "采摘后24小时内冷链发出",
     storage: "收到后冷藏，建议2天内食用",
     description: "成熟一批采一批，不催熟、不久放。酸甜度会随当天山间天气略有变化。",
+    category: "farm-grown",
+    categoryLabel: "农场自产",
+    batch: "2026 夏末最后一批",
+    harvest: "每天清晨按成熟度分批采摘",
+    sceneImage: "/assets/bayberries.webp",
+    sceneTitle: "果香出来以后，才从枝头带走",
+    sceneBody: "杨梅没有统一的采摘日。山坡朝向、树龄和清晨温度都会改变成熟速度，因此每天只采当日适合发出的数量。",
   },
   {
     id: "eggs",
@@ -55,6 +62,13 @@ const products = [
     delivery: "灯检分级后常温发出",
     storage: "阴凉处存放，冷藏更佳",
     description: "鸡群白天在林地活动，傍晚归舍。鸡蛋按批次捡回、灯检并装入缓冲蛋托。",
+    category: "farm-grown",
+    categoryLabel: "农场自产",
+    batch: "本周林下鸡舍批次",
+    harvest: "每天傍晚捡回，每周二、五发出",
+    sceneImage: "/assets/farm-egg-collecting.jpg",
+    sceneTitle: "太阳落山前，把当天的蛋捡回来",
+    sceneBody: "鸡群白天在林地里活动，傍晚归舍。鸡蛋不留到第二天，当天完成捡取、检查、分级与装托。",
   },
   {
     id: "peaches",
@@ -68,12 +82,19 @@ const products = [
     delivery: "按成熟批次采摘发出",
     storage: "常温回软，成熟后及时食用",
     description: "逐棵查看成熟度，达到香气和软硬度后才采。运输中使用独立果托减少碰伤。",
+    category: "ningbo-select",
+    categoryLabel: "宁波精选",
+    batch: "奉化东坡桃园 · 处暑批次",
+    harvest: "达到香气与软硬度后分批采摘",
+    sceneImage: "/assets/farm-peach-picking.jpg",
+    sceneTitle: "趁山雾未散，轻轻旋下成熟的桃子",
+    sceneBody: "不是按日历统一采摘，而是逐棵查看成熟度。达到甜度、果香已经出来的桃子，才会从枝头轻轻旋下。",
   },
 ];
 
 const money = (value) => `¥${Number(value || 0).toFixed(2).replace(".00", "")}`;
 
-const dailyFarmLogs = [
+const farmLogTemplates = [
   {
     date: "2026-08-24",
     label: "08.24",
@@ -150,17 +171,54 @@ function formatFarmTime(date) {
   }).format(date);
 }
 
+function formatFarmDate(date) {
+  return new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit" }).format(date).replace("/", ".");
+}
+
+function buildLiveFarmLogs(reference = new Date()) {
+  return farmLogTemplates.map((template, index) => {
+    const date = new Date(reference);
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() - index);
+    return {
+      ...template,
+      date: localDateKey(date),
+      label: formatFarmDate(date),
+      season: index === 0 ? "今天" : template.season,
+    };
+  });
+}
+
+function parseRoute(pathname = window.location.pathname) {
+  const path = pathname.replace(/\/+$/, "") || "/";
+  const productMatch = path.match(/^\/products\/([^/]+)$/);
+  if (productMatch) return { name: "product", productId: decodeURIComponent(productMatch[1]), path };
+  if (path === "/shop") return { name: "shop", path };
+  if (path === "/farm" || path.startsWith("/farm/")) return { name: "farm", date: path.split("/")[2] || null, path };
+  if (path === "/redeem") return { name: "redeem", path };
+  if (path === "/checkout") return { name: "checkout", path };
+  if (path === "/about") return { name: "about", path };
+  return { name: "home", path: "/" };
+}
+
+const pageMeta = {
+  home: ["山大王农场｜来自山林的自然味道", "顺着节气采摘，把此刻成熟的山间食物认真送到你家。"],
+  shop: ["当季商城｜山大王农场", "查看山大王农场当季在售、农场自产与宁波精选食物。"],
+  farm: ["农场此刻｜山大王农场", "从清晨到傍晚，查看山大王农场今天正在发生的采摘、捡蛋、分拣与装箱。"],
+  redeem: ["卡券兑换｜山大王农场", "验证卡券、选择当季食物并完成补差与收货信息。"],
+  checkout: ["订单结算｜山大王农场", "确认商品、收货地址、配送方式与支付信息。"],
+  about: ["关于山大王｜山大王农场", "宁波山间的一座真实农场，按土地与季节的时间认真做事。"],
+};
+
 function IconButton({ label, children, onClick, className = "" }) {
   return <button className={`icon-button ${className}`} aria-label={label} onClick={onClick}>{children}</button>;
 }
 
 export function App() {
-  const [view, setView] = useState("home");
+  const [route, setRoute] = useState(() => parseRoute());
   const [transitioning, setTransitioning] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [panel, setPanel] = useState(null);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [commerceFlow, setCommerceFlow] = useState(null);
   const [notice, setNotice] = useState("");
   const [farmNow, setFarmNow] = useState(() => new Date());
   const [cart, setCart] = useState(() => {
@@ -170,8 +228,7 @@ export function App() {
       return [];
     }
   });
-  const productsRef = useRef(null);
-  const aboutRef = useRef(null);
+  const liveFarmLogs = useMemo(() => buildLiveFarmLogs(farmNow), [farmNow]);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -192,6 +249,32 @@ export function App() {
     }
   }, [cart]);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      setRoute(parseRoute());
+      setMobileOpen(false);
+      setPanel(null);
+      window.scrollTo({ top: 0, behavior: "instant" });
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const product = route.name === "product" ? products.find((item) => item.id === route.productId) : null;
+    const [title, description] = product
+      ? [`${product.name}｜山大王农场`, `${product.batch}。${product.delivery}。`]
+      : pageMeta[route.name] || pageMeta.home;
+    document.title = title;
+    let descriptionTag = document.querySelector('meta[name="description"]');
+    if (!descriptionTag) {
+      descriptionTag = document.createElement("meta");
+      descriptionTag.name = "description";
+      document.head.appendChild(descriptionTag);
+    }
+    descriptionTag.content = description;
+  }, [route]);
+
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -201,7 +284,6 @@ export function App() {
       if (existing) return current.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item);
       return [...current, { id: product.id, name: product.name, price: product.price, image: product.image, spec: product.spec, quantity }];
     });
-    setSelectedProduct(null);
     setNotice(`${product.name} 已加入购物袋`);
   };
 
@@ -211,40 +293,56 @@ export function App() {
       .filter((item) => item.quantity > 0));
   };
 
-  const changeView = (next) => {
-    if (transitioning || view === next) return;
-    setMobileOpen(false);
-    setTransitioning(true);
-    window.setTimeout(() => {
-      setView(next);
-      window.scrollTo({ top: 0, behavior: "instant" });
-    }, 430);
-    window.setTimeout(() => setTransitioning(false), 980);
-  };
-
-  const scrollTo = (ref) => {
-    setMobileOpen(false);
-    if (view !== "home") {
-      setView("home");
-      window.setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth" }), 80);
+  const navigate = (path, options = {}) => {
+    if (transitioning || window.location.pathname === path) {
+      if (window.location.pathname === path) window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    ref.current?.scrollIntoView({ behavior: "smooth" });
+    setMobileOpen(false);
+    setPanel(null);
+    const commit = () => {
+      if (options.replace) window.history.replaceState({}, "", path);
+      else window.history.pushState({}, "", path);
+      setRoute(parseRoute(path));
+      window.scrollTo({ top: 0, behavior: "instant" });
+    };
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduceMotion && document.startViewTransition) {
+      setTransitioning(true);
+      const transition = document.startViewTransition(commit);
+      transition.finished.finally(() => setTransitioning(false));
+    } else if (!reduceMotion) {
+      setTransitioning(true);
+      window.setTimeout(commit, 240);
+      window.setTimeout(() => setTransitioning(false), 760);
+    } else {
+      commit();
+    }
   };
 
+  const currentProduct = route.name === "product" ? products.find((product) => product.id === route.productId) || products[0] : null;
+
+  if (route.name === "checkout") {
+    return <CheckoutFlow cart={cart} close={() => navigate("/shop")} complete={() => setCart([])} />;
+  }
+
+  if (route.name === "redeem") {
+    return <VoucherFlow close={() => navigate("/")} />;
+  }
+
   return (
-    <div className={`site-shell ${transitioning ? "is-transitioning" : ""}`} data-view={view}>
+    <div className={`site-shell ${transitioning ? "is-transitioning" : ""}`} data-route={route.name}>
       <header className="site-header">
-        <button className="brand" onClick={() => changeView("home")} aria-label="返回山大王农场首页">
+        <button className="brand" onClick={() => navigate("/")} aria-label="返回山大王农场首页">
           <span className="brand-mark"><Mountains weight="thin" /></span>
           <span><strong>山大王农场</strong><small>SHAN DA WANG FARM</small></span>
         </button>
 
         <nav className={`main-nav ${mobileOpen ? "is-open" : ""}`} aria-label="主导航">
-          <button onClick={() => scrollTo(productsRef)}>商城 <CaretDown size={13} /></button>
-          <button onClick={() => changeView("farm")}>农场此刻</button>
-          <button onClick={() => { setMobileOpen(false); setCommerceFlow("voucher"); }}>卡券兑换</button>
-          <button onClick={() => scrollTo(aboutRef)}>关于我们</button>
+          <button className={route.name === "shop" || route.name === "product" ? "is-active" : ""} onClick={() => navigate("/shop")}>当季商城 <CaretDown size={13} /></button>
+          <button className={route.name === "farm" ? "is-active" : ""} onClick={() => navigate("/farm")}>农场此刻</button>
+          <button onClick={() => navigate("/redeem")}>卡券兑换</button>
+          <button className={route.name === "about" ? "is-active" : ""} onClick={() => navigate("/about")}>关于山大王</button>
         </nav>
 
         <div className="header-actions">
@@ -256,52 +354,20 @@ export function App() {
       </header>
 
       <main>
-        <section className="hero" aria-labelledby="hero-title">
-          <img className="hero-image" src="/assets/hero-farm-v2.webp" alt="群山环抱、晨光中的山大王农场全景" />
-          <div className="hero-scrim" aria-hidden="true" />
-          <div className="hero-content" key={view}>
-            {view === "home" ? (
-              <>
-                <p className="eyebrow">农场八月 · 正值丰收</p>
-                <h1 id="hero-title">这一季，<br />山里有什么</h1>
-                <p className="hero-copy">顺着节气采摘，照着食物本来的样子发出。<br />从山间到餐桌，少一点周转，多一点新鲜。</p>
-                <div className="hero-actions">
-                  <button className="button button-primary" onClick={() => scrollTo(productsRef)}>看看当季</button>
-                  <button className="button button-quiet" onClick={() => changeView("farm")}>进入农场 <ArrowRight /></button>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="eyebrow">农场此刻 · {formatFarmTime(farmNow)}</p>
-                <h1 id="hero-title">山里的一天，<br />正在发生</h1>
-                <p className="hero-copy">不把农场写成故事。今天采什么、长得怎样、<br />什么时候发出，都从土地的现场说起。</p>
-                <div className="hero-actions">
-                  <button className="button button-primary" onClick={() => document.getElementById("farm-journal")?.scrollIntoView({ behavior: "smooth" })}>看今天的农事</button>
-                  <button className="button button-quiet" onClick={() => changeView("home")}><ArrowLeft /> 返回首页</button>
-                </div>
-              </>
-            )}
-          </div>
-          <div className="hero-side-note" aria-hidden="true"><span>29°56′N</span><i /><span>NINGBO</span></div>
-        </section>
-
-        {view === "home" ? <HomeContent productsRef={productsRef} addToCart={addToCart} openProduct={setSelectedProduct} openVoucher={() => setCommerceFlow("voucher")} goFarm={() => changeView("farm")} /> : <FarmContent goHome={() => changeView("home")} />}
+        {route.name === "home" && <><ImmersiveHero variant="home" now={farmNow} navigate={navigate} /><HomeContent addToCart={addToCart} navigate={navigate} liveFarmLogs={liveFarmLogs} /></>}
+        {route.name === "shop" && <><ImmersiveHero variant="shop" now={farmNow} navigate={navigate} /><ShopContent addToCart={addToCart} navigate={navigate} /></>}
+        {route.name === "farm" && <><ImmersiveHero variant="farm" now={farmNow} navigate={navigate} /><FarmContent initialDate={route.date} farmLogs={liveFarmLogs} navigate={navigate} /></>}
+        {route.name === "product" && <ProductPage key={currentProduct.id} product={currentProduct} addToCart={addToCart} navigate={navigate} />}
+        {route.name === "about" && <AboutContent navigate={navigate} />}
       </main>
 
-      <footer ref={aboutRef} className="site-footer">
+      <footer className="site-footer">
         <div><p className="footer-brand">山大王农场</p><p>宁波山间的一座真实农场，把应季食物认真送到你家。</p></div>
-        <div className="footer-meta"><span>农场自产</span><span>当季采摘</span><span>按批次发货</span></div>
+        <nav className="footer-meta" aria-label="页脚导航"><button onClick={() => navigate("/farm")}>农场日志</button><button onClick={() => navigate("/about")}>关于山大王</button><button onClick={() => navigate("/redeem")}>卡券兑换</button></nav>
       </footer>
 
       {panel === "search" && (
-        <div className="overlay" role="dialog" aria-modal="true" aria-label="搜索商品">
-          <button className="overlay-backdrop" aria-label="关闭搜索" onClick={() => setPanel(null)} />
-          <div className="search-panel">
-            <div className="panel-title"><span>搜索当季食物</span><IconButton label="关闭" onClick={() => setPanel(null)}><X /></IconButton></div>
-            <label className="search-field"><MagnifyingGlass /><input autoFocus placeholder="试试“水蜜桃”或“鸡蛋”" /></label>
-            <p>热门：水蜜桃 · 杨梅 · 初生蛋 · 本周菜篮</p>
-          </div>
-        </div>
+        <SearchPanel close={() => setPanel(null)} navigate={navigate} />
       )}
 
       {panel === "cart" && (
@@ -313,7 +379,7 @@ export function App() {
               <div className="cart-empty">
                 <ShoppingBagOpen className="empty-icon" weight="thin" />
                 <h2>还没有选好</h2><p>从这一季真正成熟的食物开始。</p>
-                <button className="button button-primary" onClick={() => { setPanel(null); scrollTo(productsRef); }}>看看当季</button>
+                <button className="button button-primary" onClick={() => navigate("/shop")}>看看当季</button>
               </div>
             ) : (
               <>
@@ -328,29 +394,70 @@ export function App() {
                 </div>
                 <div className="cart-total"><span>商品小计</span><strong>{money(cartSubtotal)}</strong></div>
                 <p className="cart-delivery-note">配送费将在填写地址后计算</p>
-                <button className="button button-primary cart-checkout" onClick={() => { setPanel(null); setCommerceFlow("checkout"); }}>去结算 <ArrowRight /></button>
+                <button className="button button-primary cart-checkout" onClick={() => navigate("/checkout")}>去结算 <ArrowRight /></button>
               </>
             )}
           </aside>
         </div>
       )}
 
-      {selectedProduct && <ProductDetail product={selectedProduct} close={() => setSelectedProduct(null)} addToCart={addToCart} />}
-
-      {commerceFlow === "checkout" && (
-        <CheckoutFlow cart={cart} close={() => setCommerceFlow(null)} complete={() => setCart([])} />
-      )}
-
-      {commerceFlow === "voucher" && (
-        <VoucherFlow close={() => setCommerceFlow(null)} />
-      )}
-
       <div className={`toast ${notice ? "is-visible" : ""}`} role="status" aria-live="polite">{notice}</div>
+      <div className="transition-curtain" aria-hidden="true"><span>沿着山路，去下一处</span></div>
     </div>
   );
 }
 
-function HomeContent({ productsRef, addToCart, openProduct, openVoucher, goFarm }) {
+function ImmersiveHero({ variant, now, navigate }) {
+  const content = {
+    home: {
+      eyebrow: `农场${now.getMonth() + 1}月 · 正值丰收`,
+      title: <>这一季，<br />山里有什么</>,
+      copy: <>顺着节气采摘，照着食物本来的样子发出。<br />从山间到餐桌，少一点周转，多一点新鲜。</>,
+      primary: ["看看当季", "/shop"],
+      secondary: ["进入农场", "/farm"],
+    },
+    shop: {
+      eyebrow: "当季商城 · 成熟一批，发出一批",
+      title: <>从山里出发，<br />只卖这一季</>,
+      copy: <>这里没有全年不变的货架。果实、蔬菜和禽蛋<br />按照成熟批次出现，也按照土地的时间离场。</>,
+      primary: ["查看本季在售", "#shop-products"],
+      secondary: ["看今天的农事", "/farm"],
+    },
+    farm: {
+      eyebrow: `农场此刻 · ${formatFarmTime(now)}`,
+      title: <>山里的一天，<br />正在发生</>,
+      copy: <>不把农场写成故事。今天采什么、长得怎样、<br />什么时候发出，都从土地的现场说起。</>,
+      primary: ["看今天的农事", "#farm-journal"],
+      secondary: ["回到当季", "/shop"],
+    },
+  }[variant];
+
+  const activate = (target) => {
+    if (target.startsWith("#")) document.querySelector(target)?.scrollIntoView({ behavior: "smooth" });
+    else navigate(target);
+  };
+
+  return (
+    <section className={`hero hero-${variant}`} aria-labelledby="hero-title">
+      <img className="hero-image" src="/assets/hero-farm-v2.webp" alt="群山环抱、晨光中的山大王农场全景" />
+      <div className="hero-scrim" aria-hidden="true" />
+      <div className="hero-content" key={variant}>
+        <p className="eyebrow">{content.eyebrow}</p>
+        <h1 id="hero-title">{content.title}</h1>
+        <p className="hero-copy">{content.copy}</p>
+        <div className="hero-actions">
+          <button className="button button-primary" onClick={() => activate(content.primary[1])}>{content.primary[0]}</button>
+          <button className="button button-quiet" onClick={() => activate(content.secondary[1])}>{variant === "farm" && <ArrowLeft />} {content.secondary[0]} {variant !== "farm" && <ArrowRight />}</button>
+        </div>
+      </div>
+      <div className="hero-side-note" aria-hidden="true"><span>29°56′N</span><i /><span>NINGBO</span></div>
+      <div className="hero-scroll-cue" aria-hidden="true"><span>向下，沿着季节走</span><i /></div>
+    </section>
+  );
+}
+
+function HomeContent({ addToCart, navigate, liveFarmLogs }) {
+  const todayActivity = liveFarmLogs[0].activities[0];
   return (
     <>
       <section className="season-strip" aria-label="时令物候">
@@ -362,35 +469,34 @@ function HomeContent({ productsRef, addToCart, openProduct, openVoucher, goFarm 
         </div>
       </section>
 
-      <section ref={productsRef} className="products-section section-shell">
+      <section className="products-section section-shell">
         <div className="section-intro">
           <div><p className="eyebrow dark">当季在售</p><h2>本季值得买</h2></div>
-          <p>不追求全年都有什么。只把此刻成熟、适合发出的食物，放到你面前。</p>
+          <div className="section-intro-action"><p>首页只放这一季最值得带走的三样。更多批次、分类和发出时间，都在当季商城里。</p><button className="text-link" onClick={() => navigate("/shop")}>走进当季商城 <ArrowRight /></button></div>
         </div>
-        <div className="product-grid">
-          {products.map((product) => (
-            <article className="product-card" key={product.name}>
-              <button className="product-image-wrap" onClick={() => openProduct(product)}><img src={product.image} alt={product.name} /><span>{product.status}</span></button>
-              <div className="product-info">
-                <button className="product-title" onClick={() => openProduct(product)}><h3>{product.name}</h3><p>{product.detail}</p></button>
-                <div className="product-buy"><strong>{money(product.price)}</strong><button onClick={() => addToCart(product)} aria-label={`把${product.name}加入选购袋`}><ShoppingCartSimple /></button></div>
-              </div>
-            </article>
-          ))}
+        <ProductGrid items={products} addToCart={addToCart} navigate={navigate} />
+      </section>
+
+      <section className="home-live-chapter">
+        <div className="home-live-image"><img src={todayActivity.images[0].src} alt={todayActivity.images[0].alt} /></div>
+        <div className="home-live-copy">
+          <p className="eyebrow dark">农场此刻 · {todayActivity.time}</p>
+          <span>{todayActivity.place}</span>
+          <h2>{todayActivity.title}</h2>
+          <p>{todayActivity.body}</p>
+          <button className="text-link" onClick={() => navigate("/farm")}>继续跟着今天走 <ArrowRight /></button>
         </div>
       </section>
 
-      <section className="voucher-section section-shell">
+      <section className="voucher-section section-shell home-voucher">
         <div className="voucher-copy">
-          <p className="eyebrow">卡券兑换</p>
+          <p className="eyebrow">礼赠与兑换</p>
           <h2>收到一张卡，<br />也收到选择这一季的自由</h2>
-          <p>输入兑换码后选择当季食物。金额不足可以补差，也可以顺手加购；地址和配送一次完成。</p>
-          <button className="button voucher-button" onClick={openVoucher}><Ticket /> 开始兑换</button>
+          <p>礼物不必替别人决定。让收礼的人自己走进这一季，选择真正想收到的食物。</p>
+          <button className="button voucher-button" onClick={() => navigate("/redeem")}><Ticket /> 打开我的卡券</button>
         </div>
-        <div className="voucher-steps" aria-label="卡券兑换步骤">
-          <article><span>01</span><strong>输入兑换码</strong><p>先确认卡券余额和有效期</p></article>
-          <article><span>02</span><strong>选食物与加购</strong><p>支持补差升级，不浪费余额</p></article>
-          <article><span>03</span><strong>填地址并确认</strong><p>按商品属性安排冷链或常温配送</p></article>
+        <div className="voucher-visual" aria-hidden="true">
+          <span>山大王农场</span><strong>时令礼赠卡</strong><small>SHAN DA WANG FARM GIFT</small><i>山</i>
         </div>
       </section>
 
@@ -398,7 +504,7 @@ function HomeContent({ productsRef, addToCart, openProduct, openVoucher, goFarm 
         <div className="proof-copy">
           <p className="eyebrow dark">从土地开始</p><h2>知道食物从哪里来，<br />也知道它何时出发</h2>
           <p>每一批果子、蔬菜和禽蛋都有自己的成熟时间。我们记录采摘、分拣和发出的过程，让“新鲜”不只是一句形容。</p>
-          <button className="text-link" onClick={goFarm}>去农场看一看 <ArrowRight /></button>
+          <button className="text-link" onClick={() => navigate("/about")}>认识这座农场 <ArrowRight /></button>
         </div>
         <div className="proof-facts">
           <article><MapPin weight="thin" /><strong>宁波山间</strong><span>农场自产与本地精选</span></article>
@@ -410,10 +516,115 @@ function HomeContent({ productsRef, addToCart, openProduct, openVoucher, goFarm 
   );
 }
 
-function FarmContent({ goHome }) {
-  const todayKey = localDateKey(new Date());
-  const [selectedDate, setSelectedDate] = useState(() => dailyFarmLogs.find((day) => day.date === todayKey)?.date || dailyFarmLogs[0].date);
-  const activeDay = dailyFarmLogs.find((day) => day.date === selectedDate) || dailyFarmLogs[0];
+function ShopContent({ addToCart, navigate }) {
+  const [filter, setFilter] = useState("all");
+  const visibleProducts = filter === "all" ? products : products.filter((product) => product.category === filter);
+  return (
+    <section id="shop-products" className="shop-page section-shell">
+      <div className="shop-page-heading">
+        <div><p className="eyebrow dark">本季货架</p><h2>成熟以后，才来到这里</h2></div>
+        <p>商品不是全年固定陈列。每一次在售，都对应一个真实批次、一个发出时间和一套包装方式。</p>
+      </div>
+      <div className="shop-filters" role="group" aria-label="筛选商品来源">
+        {[['all', '全部当季'], ['farm-grown', '农场自产'], ['ningbo-select', '宁波精选']].map(([value, label]) => <button className={filter === value ? "is-active" : ""} key={value} onClick={() => setFilter(value)}>{label}</button>)}
+      </div>
+      <ProductGrid items={visibleProducts} addToCart={addToCart} navigate={navigate} />
+      <aside className="shop-note">
+        <Clock weight="thin" />
+        <div><strong>为什么有些食物不在货架上？</strong><p>因为还没有成熟。下一批采摘时间会在农场日志和商品页同步更新，不用让土地追着订单跑。</p></div>
+        <button className="text-link" onClick={() => navigate("/farm")}>查看农场进度 <ArrowRight /></button>
+      </aside>
+    </section>
+  );
+}
+
+function ProductGrid({ items, addToCart, navigate }) {
+  return (
+    <div className="product-grid">
+      {items.map((product) => (
+        <article className="product-card" key={product.id}>
+          <button className="product-image-wrap" onClick={() => navigate(`/products/${product.id}`)}><img src={product.image} alt={product.name} style={{ viewTransitionName: `product-${product.id}` }} /><span>{product.status}</span></button>
+          <div className="product-info">
+            <button className="product-title" onClick={() => navigate(`/products/${product.id}`)}><small>{product.categoryLabel}</small><h3>{product.name}</h3><p>{product.detail}</p></button>
+            <div className="product-buy"><strong>{money(product.price)}</strong><button onClick={() => addToCart(product)} aria-label={`把${product.name}加入选购袋`}><ShoppingCartSimple /></button></div>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ProductPage({ product, addToCart, navigate }) {
+  const [quantity, setQuantity] = useState(1);
+  return (
+    <article className="product-page">
+      <button className="page-back" onClick={() => navigate("/shop")}><ArrowLeft /> 回到当季商城</button>
+      <section className="product-page-hero">
+        <div className="product-page-image"><img src={product.image} alt={product.name} style={{ viewTransitionName: `product-${product.id}` }} /><span>{product.status}</span></div>
+        <div className="product-page-copy">
+          <p className="eyebrow dark">{product.categoryLabel} · {product.batch}</p>
+          <h1>{product.name}</h1>
+          <p className="product-lead">{product.description}</p>
+          <dl>
+            <div><dt>这一批</dt><dd>{product.batch}</dd></div>
+            <div><dt>采摘与收取</dt><dd>{product.harvest}</dd></div>
+            <div><dt>来源</dt><dd>{product.origin}</dd></div>
+            <div><dt>发出</dt><dd>{product.delivery}</dd></div>
+            <div><dt>保存</dt><dd>{product.storage}</dd></div>
+          </dl>
+          <div className="product-page-buy"><div><small>{product.spec}</small><strong>{money(product.price)}</strong></div><QuantityControl value={quantity} decrease={() => setQuantity((value) => Math.max(1, value - 1))} increase={() => setQuantity((value) => value + 1)} /></div>
+          <button className="button button-primary product-add" onClick={() => addToCart(product, quantity)}>加入购物袋 · {money(product.price * quantity)}</button>
+        </div>
+      </section>
+      <section className="product-story-chapter">
+        <div><img src={product.sceneImage} alt={product.sceneTitle} /></div>
+        <div><p className="eyebrow dark">从现场开始</p><h2>{product.sceneTitle}</h2><p>{product.sceneBody}</p><button className="text-link" onClick={() => navigate("/farm")}>查看今天的农场记录 <ArrowRight /></button></div>
+      </section>
+      <section className="product-fulfillment section-shell">
+        <article><Mountains weight="thin" /><strong>批次对应</strong><p>前台批次与后台库存、采摘日和预计发出时间保持一致。</p></article>
+        <article><Package weight="thin" /><strong>按属性装箱</strong><p>根据温控、易碎与同箱规则匹配箱型，不让打包临时发挥。</p></article>
+        <article><Truck weight="thin" /><strong>发出可追踪</strong><p>接入后台后同步分拣、装箱、发货与物流状态。</p></article>
+      </section>
+    </article>
+  );
+}
+
+function AboutContent({ navigate }) {
+  return (
+    <article className="about-page">
+      <section className="about-hero">
+        <img src="/assets/hero-farm-v2.webp" alt="晨光中的山大王农场" />
+        <div><p className="eyebrow">关于山大王</p><h1>一座农场，<br />怎样度过自己的四季</h1><p>不把“自然”当作一句广告。看天气、等成熟、按批次发出，是这里每天重复的工作。</p></div>
+      </section>
+      <section className="about-chapters section-shell">
+        <article><span>01</span><div><p className="eyebrow dark">土地</p><h2>先听土地说，现在适合什么</h2><p>不同坡向、温度和雨水，让同一种果实也有不同的成熟时刻。我们接受这种不整齐，并把它写进商品批次。</p></div><img src="/assets/farm-peach-picking.jpg" alt="农场人员在桃园采摘" /></article>
+        <article><span>02</span><div><p className="eyebrow dark">劳动</p><h2>一天的工作，不只发生一件事</h2><p>采摘、捡蛋、分拣、装托与冷链准备，被记录成每天的农场日志，也成为用户理解食物的依据。</p></div><img src="/assets/farm-egg-checking.jpg" alt="农场人员检查当天鸡蛋" /></article>
+      </section>
+      <section className="about-cta"><p>今天的农场已经开始了。</p><button className="button button-primary" onClick={() => navigate("/farm")}>进入农场此刻 <ArrowRight /></button></section>
+    </article>
+  );
+}
+
+function SearchPanel({ close, navigate }) {
+  const [query, setQuery] = useState("");
+  const matches = products.filter((product) => `${product.name}${product.detail}${product.categoryLabel}`.includes(query.trim()));
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-label="搜索商品">
+      <button className="overlay-backdrop" aria-label="关闭搜索" onClick={close} />
+      <div className="search-panel">
+        <div className="panel-title"><span>搜索当季食物</span><IconButton label="关闭" onClick={close}><X /></IconButton></div>
+        <label className="search-field"><MagnifyingGlass /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="试试“水蜜桃”或“鸡蛋”" /></label>
+        {!query && <p>热门：水蜜桃 · 杨梅 · 初生蛋</p>}
+        {query && <div className="search-results">{matches.length ? matches.map((product) => <button key={product.id} onClick={() => navigate(`/products/${product.id}`)}><img src={product.image} alt="" /><span><strong>{product.name}</strong><small>{product.detail}</small></span><ArrowRight /></button>) : <p>这一季暂时没有找到相关食物。</p>}</div>}
+      </div>
+    </div>
+  );
+}
+
+function FarmContent({ initialDate, farmLogs, navigate }) {
+  const todayKey = farmLogs[0].date;
+  const [selectedDate, setSelectedDate] = useState(() => farmLogs.find((day) => day.date === initialDate)?.date || todayKey);
+  const activeDay = farmLogs.find((day) => day.date === selectedDate) || farmLogs[0];
 
   return (
     <section id="farm-journal" className="farm-journal section-shell">
@@ -421,12 +632,12 @@ function FarmContent({ goHome }) {
         <p className="eyebrow dark">农场日志</p>
         <h2>一天，不只发生一件事</h2>
         <p>同一天里的采摘、捡蛋、分拣与装箱都记在一起。日期每天向前走，农场的现场也跟着更新。</p>
-        <div className="journal-live"><i /> 每日更新 · 当前记录至 {dailyFarmLogs[0].label}</div>
+        <div className="journal-live"><i /> 每日更新 · 当前记录至 {farmLogs[0].label}</div>
       </div>
 
       <nav className="journal-days" aria-label="选择农场日志日期">
-        {dailyFarmLogs.map((day) => (
-          <button className={day.date === activeDay.date ? "is-active" : ""} key={day.date} onClick={() => setSelectedDate(day.date)}>
+        {farmLogs.map((day) => (
+          <button className={day.date === activeDay.date ? "is-active" : ""} key={day.date} onClick={() => { setSelectedDate(day.date); window.history.replaceState({}, "", `/farm/${day.date}`); }}>
             <strong>{day.label}</strong>
             <span>{day.date === todayKey ? "今天" : day.season}</span>
             <small>{day.summary}</small>
@@ -441,16 +652,16 @@ function FarmContent({ goHome }) {
         </header>
 
         <div className="journal-list">
-          {activeDay.activities.map((activity) => (
+          {activeDay.activities.map((activity, activityIndex) => (
             <article className="journal-entry" key={`${activeDay.date}-${activity.time}`}>
               <div className="journal-date"><strong>{activity.time}</strong><span>{activity.place}</span></div>
               <PhotoCarousel images={activity.images} title={activity.title} />
-              <div className="journal-copy"><h3>{activity.title}</h3><p>{activity.body}</p><button className="text-link" onClick={() => {}}>查看这批食物 <ArrowRight /></button></div>
+              <div className="journal-copy"><h3>{activity.title}</h3><p>{activity.body}</p><button className="text-link" onClick={() => navigate(activityIndex === 0 ? "/products/peaches" : "/products/eggs")}>查看这批食物 <ArrowRight /></button></div>
             </article>
           ))}
         </div>
       </div>
-      <button className="button button-outline" onClick={goHome}><ArrowLeft /> 回到当季首页</button>
+      <button className="button button-outline" onClick={() => navigate("/")}><ArrowLeft /> 回到当季首页</button>
     </section>
   );
 }
@@ -676,7 +887,7 @@ function VoucherFlow({ close }) {
 
   const selectedItems = products.filter((product) => quantities[product.id] > 0).map((product) => ({ ...product, quantity: quantities[product.id] }));
   const subtotal = selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = subtotal >= 199 ? 0 : 18;
+  const shipping = selectedItems.length === 0 ? 0 : subtotal >= 199 ? 0 : 18;
   const credit = Math.min(voucher?.balance || 0, subtotal + shipping);
   const topUpAmount = Math.max(0, subtotal + shipping - credit);
   const remaining = Math.max(0, (voucher?.balance || 0) - subtotal - shipping);
@@ -718,7 +929,7 @@ function VoucherFlow({ close }) {
       <main className="flow-main">
         {step === 0 && <FlowSection eyebrow="01 · 卡券校验" title="先看看，这张卡里有什么" intro="输入兑换码后会显示余额、有效期和可兑换范围。">
           <div className="voucher-code-card"><Ticket weight="thin" /><div><span>山大王农场</span><strong>时令礼赠卡</strong><small>SHAN DA WANG FARM GIFT</small></div></div>
-          <div className="voucher-code-input"><input autoFocus value={code} onChange={(event) => setCode(event.target.value)} onKeyDown={(event) => event.key === "Enter" && validateCode()} placeholder="请输入兑换码" /><button className="button button-primary" disabled={loading} onClick={validateCode}>{loading ? "正在校验…" : "验证卡券"}</button></div>
+          <div className="voucher-code-input"><input value={code} onChange={(event) => setCode(event.target.value)} onKeyDown={(event) => event.key === "Enter" && validateCode()} placeholder="请输入兑换码" /><button className="button button-primary" disabled={loading} onClick={validateCode}>{loading ? "正在校验…" : "验证卡券"}</button></div>
           <p className="demo-code">体验兑换码：<button onClick={() => setCode("SDW2026")}>SDW2026</button></p>
           {error && <p className="form-error">{error}</p>}
         </FlowSection>}
