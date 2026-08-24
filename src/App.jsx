@@ -590,6 +590,11 @@ function ImmersiveHero({ variant, now, navigate }) {
           <button className="button button-quiet" onClick={() => activate(content.secondary[1])}>{variant === "farm" && <ArrowLeft />} {content.secondary[0]} {variant !== "farm" && <ArrowRight />}</button>
         </div>
       </div>
+      {variant === "home" && (
+        <button className="hero-season-summary" onClick={() => document.querySelector(".season-strip")?.scrollIntoView({ behavior: "smooth" })}>
+          <span>当前节气</span><strong>处暑</strong><i /><small>8月23日 · 早晚采摘更从容</small><ArrowRight />
+        </button>
+      )}
       <div className="hero-side-note" aria-hidden="true"><span>29°56′N</span><i /><span>NINGBO</span></div>
       <div className="hero-scroll-cue" aria-hidden="true"><span>向下，沿着季节走</span><i /></div>
     </section>
