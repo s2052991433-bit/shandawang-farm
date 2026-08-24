@@ -71,6 +71,26 @@ const products = [
     sceneBody: "鸡群白天在林地里活动，傍晚归舍。鸡蛋不留到第二天，当天完成捡取、检查、分级与装托。",
   },
   {
+    id: "egg-annual-card",
+    name: "散养鸡蛋年卡",
+    detail: "连续12个月 · 每月1箱30枚",
+    spec: "12个月 × 30枚/箱",
+    price: 798,
+    status: "限量100张",
+    image: "/assets/gift-box.webp",
+    origin: "山大王农场林下鸡舍 · 农场自产",
+    delivery: "购卡后领取独立卡密，激活后每月按批次发出1箱",
+    storage: "卡密请妥善保管，激活后连续履约12个月",
+    description: "一次送出一整年的惦记。激活后连续12个月，每月收到1箱30枚散养鸡蛋；每批完成捡取、灯检、分级和缓冲装托后发出。",
+    category: "gift-card",
+    categoryLabel: "礼品卡",
+    batch: "2026 鸡蛋年卡 · 限量100张",
+    harvest: "每月匹配当月鸡舍批次，共发出12箱",
+    sceneImage: "/assets/farm-egg-checking.jpg",
+    sceneTitle: "不是一次送完，而是每个月都记得",
+    sceneBody: "年卡激活后建立12期履约计划。每月从当批鸡蛋中完成捡取、灯检与分级，再按固定30枚缓冲箱寄出。",
+  },
+  {
     id: "peaches",
     name: "奉化水蜜桃",
     detail: "树熟采摘 · 6枚礼装",
@@ -619,7 +639,7 @@ function HomeContent({ addToCart, navigate, liveFarmLogs }) {
           <div><p className="eyebrow dark">当季在售</p><h2>本季值得买</h2></div>
           <div className="section-intro-action"><p>首页只放这一季最值得带走的三样。更多批次、分类和发出时间，都在当季商城里。</p><button className="text-link" onClick={() => navigate("/shop")}>走进当季商城 <ArrowRight /></button></div>
         </div>
-        <ProductGrid items={products.filter(({ id }) => ["peaches", "weekly-vegetable-basket", "ningbo-rice-cakes"].includes(id))} addToCart={addToCart} navigate={navigate} />
+        <ProductGrid items={products.filter(({ id }) => ["weekly-vegetable-basket", "ningbo-rice-cakes", "egg-annual-card"].includes(id))} addToCart={addToCart} navigate={navigate} />
       </section>
 
       <section className="home-live-chapter">
@@ -671,7 +691,7 @@ function ShopContent({ addToCart, navigate }) {
         <p>商品不是全年固定陈列。每一次在售，都对应一个真实批次、一个发出时间和一套包装方式。</p>
       </div>
       <div className="shop-filters" role="group" aria-label="筛选商品来源">
-        {[["all", "全部当季"], ["vegetables", "时令时蔬"], ["farm-grown", "农场自产"], ["ningbo-select", "宁波精选"], ["ningbo-specialty", "宁波特产"]].map(([value, label]) => <button className={filter === value ? "is-active" : ""} key={value} onClick={() => setFilter(value)}>{label}</button>)}
+        {[["all", "全部当季"], ["vegetables", "时令时蔬"], ["farm-grown", "农场自产"], ["ningbo-select", "宁波精选"], ["ningbo-specialty", "宁波特产"], ["gift-card", "礼品卡"]].map(([value, label]) => <button className={filter === value ? "is-active" : ""} key={value} onClick={() => setFilter(value)}>{label}</button>)}
       </div>
       <ProductGrid items={visibleProducts} addToCart={addToCart} navigate={navigate} />
       <aside className="shop-note">
