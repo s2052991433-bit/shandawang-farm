@@ -1,10 +1,11 @@
-# 山大王农场
+# 山大王农场 V2
 
-“山大王农场”独立站 V1 前端原型，包含商城、商品详情、农场内容、卡券兑换、购物车、结算和账户页面。
+山大王农场独立站 V2 首页，包含沉浸式农场全景、时令物候、当季商品、农场日志、搜索、购物袋和响应式移动端体验。
 
-## 在线预览
+## 在线访问
 
-发布完成后可访问：<https://s2052991433-bit.github.io/shandawang-farm/>
+- GitHub Pages: https://s2052991433-bit.github.io/shandawang-farm/
+- 正式域名: https://www.shandawangfarm.com/
 
 ## 本地运行
 
@@ -12,5 +13,3 @@
 pnpm install
 pnpm dev
 ```
-
-演示卡券码：`SDW2026`
