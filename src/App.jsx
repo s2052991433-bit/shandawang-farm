@@ -77,14 +77,14 @@ const products = [
     spec: "12个月 × 30枚/箱",
     price: 798,
     status: "限量100张",
-    image: "/assets/gift-box.webp",
+    image: "/assets/egg-annual-card-2027.webp",
     origin: "山大王农场林下鸡舍 · 农场自产",
-    delivery: "购卡后领取独立卡密，激活后每月按批次发出1箱",
+    delivery: "购卡后领取独立卡密，激活后自2027年1月起每月按批次发出1箱",
     storage: "卡密请妥善保管，激活后连续履约12个月",
     description: "一次送出一整年的惦记。激活后连续12个月，每月收到1箱30枚散养鸡蛋；每批完成捡取、灯检、分级和缓冲装托后发出。",
     category: "gift-card",
     categoryLabel: "礼品卡",
-    batch: "2026 鸡蛋年卡 · 限量100张",
+    batch: "2027 鸡蛋年卡 · 限量100张",
     harvest: "每月匹配当月鸡舍批次，共发出12箱",
     sceneImage: "/assets/farm-egg-checking.jpg",
     sceneTitle: "不是一次送完，而是每个月都记得",
@@ -546,7 +546,7 @@ export function App() {
                 <div className="cart-lines">
                   {cart.map((item) => (
                     <article className="cart-line" key={item.id}>
-                      <img src={item.image} alt={item.name} />
+                      <img className={item.id === "egg-annual-card" ? "is-card-cover" : undefined} src={item.image} alt={item.name} />
                       <div><h3>{item.name}</h3><p>{item.spec}</p><strong>{money(item.price)}</strong></div>
                       <QuantityControl value={item.quantity} decrease={() => changeQuantity(item.id, -1)} increase={() => changeQuantity(item.id, 1)} />
                     </article>
@@ -708,7 +708,7 @@ function ProductGrid({ items, addToCart, navigate }) {
     <div className="product-grid">
       {items.map((product) => (
         <article className="product-card" key={product.id}>
-          <button className="product-image-wrap" onClick={() => navigate(`/products/${product.id}`)}><img src={product.image} alt={product.name} style={{ viewTransitionName: `product-${product.id}` }} /><span>{product.status}</span></button>
+          <button className="product-image-wrap" onClick={() => navigate(`/products/${product.id}`)}><img className={product.id === "egg-annual-card" ? "is-card-cover" : undefined} src={product.image} alt={product.name} style={{ viewTransitionName: `product-${product.id}` }} /><span>{product.status}</span></button>
           <div className="product-info">
             <button className="product-title" onClick={() => navigate(`/products/${product.id}`)}><small>{product.categoryLabel}</small><h3>{product.name}</h3><p>{product.detail}</p></button>
             <div className="product-buy"><strong>{money(product.price)}</strong><button onClick={() => addToCart(product)} aria-label={`把${product.name}加入选购袋`}><ShoppingCartSimple /></button></div>
@@ -725,7 +725,7 @@ function ProductPage({ product, addToCart, navigate }) {
     <article className="product-page">
       <button className="page-back" onClick={() => navigate("/shop")}><ArrowLeft /> 回到当季商城</button>
       <section className="product-page-hero">
-        <div className="product-page-image"><img src={product.image} alt={product.name} style={{ viewTransitionName: `product-${product.id}` }} /><span>{product.status}</span></div>
+        <div className="product-page-image"><img className={product.id === "egg-annual-card" ? "is-card-cover" : undefined} src={product.image} alt={product.name} style={{ viewTransitionName: `product-${product.id}` }} /><span>{product.status}</span></div>
         <div className="product-page-copy">
           <p className="eyebrow dark">{product.categoryLabel} · {product.batch}</p>
           <h1>{product.name}</h1>
@@ -780,7 +780,7 @@ function SearchPanel({ close, navigate }) {
         <div className="panel-title"><span>搜索当季食物</span><IconButton label="关闭" onClick={close}><X /></IconButton></div>
         <label className="search-field"><MagnifyingGlass /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="试试“水蜜桃”或“鸡蛋”" /></label>
         {!query && <p>热门：水蜜桃 · 杨梅 · 初生蛋</p>}
-        {query && <div className="search-results">{matches.length ? matches.map((product) => <button key={product.id} onClick={() => navigate(`/products/${product.id}`)}><img src={product.image} alt="" /><span><strong>{product.name}</strong><small>{product.detail}</small></span><ArrowRight /></button>) : <p>这一季暂时没有找到相关食物。</p>}</div>}
+        {query && <div className="search-results">{matches.length ? matches.map((product) => <button key={product.id} onClick={() => navigate(`/products/${product.id}`)}><img className={product.id === "egg-annual-card" ? "is-card-cover" : undefined} src={product.image} alt="" /><span><strong>{product.name}</strong><small>{product.detail}</small></span><ArrowRight /></button>) : <p>这一季暂时没有找到相关食物。</p>}</div>}
       </div>
     </div>
   );
@@ -892,7 +892,7 @@ function ProductDetail({ product, close, addToCart }) {
       <button className="commerce-backdrop" aria-label="关闭商品详情" onClick={close} />
       <section className="product-modal">
         <IconButton label="关闭商品详情" className="modal-close" onClick={close}><X /></IconButton>
-        <div className="product-modal-image"><img src={product.image} alt={product.name} /><span>{product.status}</span></div>
+        <div className="product-modal-image"><img className={product.id === "egg-annual-card" ? "is-card-cover" : undefined} src={product.image} alt={product.name} /><span>{product.status}</span></div>
         <div className="product-modal-copy">
           <p className="eyebrow dark">当季食物</p>
           <h2>{product.name}</h2>
@@ -931,7 +931,7 @@ function OrderLineList({ items }) {
     <div className="checkout-lines">
       {items.map((item) => (
         <article key={item.id}>
-          <img src={item.image} alt={item.name} />
+          <img className={item.id === "egg-annual-card" ? "is-card-cover" : undefined} src={item.image} alt={item.name} />
           <div><h3>{item.name}</h3><p>{item.spec}</p><span>数量 × {item.quantity}</span></div>
           <strong>{money(item.price * item.quantity)}</strong>
         </article>
@@ -1107,7 +1107,7 @@ function VoucherFlow({ close }) {
 
         {step === 2 && voucher && <FlowSection eyebrow="03 · 补差与加购" title="余额不浪费，喜欢的也能多带一点" intro="超过卡券余额的部分可以补差；没有用完的余额会继续保留在卡中。">
           <VoucherBalance voucher={voucher} subtotal={subtotal} shipping={shipping} remaining={remaining} topUpAmount={topUpAmount} />
-          <div className="add-on-list">{products.map((product) => <article key={product.id}><img src={product.image} alt={product.name} /><div><strong>{product.name}</strong><span>{money(product.price)} · {product.spec}</span></div><QuantityControl compact value={quantities[product.id] || 0} decrease={() => changeVoucherQuantity(product.id, -1)} increase={() => changeVoucherQuantity(product.id, 1)} /></article>)}</div>
+          <div className="add-on-list">{products.map((product) => <article key={product.id}><img className={product.id === "egg-annual-card" ? "is-card-cover" : undefined} src={product.image} alt={product.name} /><div><strong>{product.name}</strong><span>{money(product.price)} · {product.spec}</span></div><QuantityControl compact value={quantities[product.id] || 0} decrease={() => changeVoucherQuantity(product.id, -1)} increase={() => changeVoucherQuantity(product.id, 1)} /></article>)}</div>
           <FlowActions back={() => setStep(1)}><button className="button button-primary" disabled={!selectedItems.length} onClick={() => setStep(3)}>填写收货地址 <ArrowRight /></button></FlowActions>
         </FlowSection>}
 
@@ -1148,7 +1148,7 @@ function VoucherBalance({ voucher, subtotal, shipping, remaining, topUpAmount })
 }
 
 function VoucherProduct({ product, quantity, change }) {
-  return <article className={`voucher-product ${quantity ? "is-selected" : ""}`}><img src={product.image} alt={product.name} /><div><span>{product.status}</span><h3>{product.name}</h3><p>{product.spec}</p><strong>{money(product.price)}</strong></div>{quantity ? <QuantityControl value={quantity} decrease={() => change(-1)} increase={() => change(1)} /> : <button className="button button-outline" onClick={() => change(1)}>选择</button>}</article>;
+  return <article className={`voucher-product ${quantity ? "is-selected" : ""}`}><img className={product.id === "egg-annual-card" ? "is-card-cover" : undefined} src={product.image} alt={product.name} /><div><span>{product.status}</span><h3>{product.name}</h3><p>{product.spec}</p><strong>{money(product.price)}</strong></div>{quantity ? <QuantityControl value={quantity} decrease={() => change(-1)} increase={() => change(1)} /> : <button className="button button-outline" onClick={() => change(1)}>选择</button>}</article>;
 }
 
 function ResultSection({ icon, title, id, note, close }) {
