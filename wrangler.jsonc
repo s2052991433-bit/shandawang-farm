@@ -2,6 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "shandawang-farm",
   "main": "worker/index.js",
+  "workers_dev": true,
+  "preview_urls": false,
   "compatibility_date": "2026-08-31",
   "assets": {
     "directory": "./dist/client",
