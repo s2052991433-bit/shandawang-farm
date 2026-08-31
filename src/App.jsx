@@ -319,14 +319,48 @@ const productSeasonById = {
 };
 const seasonLabels = { spring: "春", summer: "夏", autumn: "秋", winter: "冬", annual: "全年" };
 
+const defaultSaleMonthsBySeason = {
+  spring: [2, 3, 4],
+  summer: [5, 6, 7, 8],
+  autumn: [9, 10],
+  winter: [11, 12, 1],
+  annual: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+};
+
+const productSaleMonthsById = {
+  bayberries: [6, 7],
+  peaches: [7, 8],
+  "weekly-vegetable-basket": [5, 6, 7, 8],
+  "farm-tomatoes": [5, 6, 7, 8],
+  "farm-cucumbers": [5, 6, 7, 8],
+  "purple-eggplants": [6, 7, 8],
+  "fresh-edamame": [8, 9, 10],
+  "baby-bok-choy": [2, 3, 4, 9, 10, 11],
+  "spring-bamboo-shoots": [3, 4],
+  "spring-strawberries": [2, 3, 4],
+  "autumn-persimmons": [10, 11],
+  "autumn-sweet-potatoes": [10, 11],
+  "winter-tangerines": [11, 12],
+  "winter-greens": [12, 1, 2],
+  "ningbo-rice-cakes": [11, 12, 1, 2],
+};
+
+function productSaleMode(product, month = new Date().getMonth() + 1) {
+  if (product.id === "egg-annual-card" || product.season === "annual" || productSeasonById[product.id] === "annual") return "available";
+  const season = product.season || productSeasonById[product.id] || "summer";
+  const saleMonths = product.saleMonths || productSaleMonthsById[product.id] || defaultSaleMonthsBySeason[season] || [];
+  return saleMonths.map(Number).includes(Number(month)) ? "available" : "preorder";
+}
+
 function normalizeProduct(product) {
   const season = product.season || productSeasonById[product.id] || "summer";
-  const annualCard = product.id === "egg-annual-card";
+  const saleMonths = product.saleMonths || productSaleMonthsById[product.id] || defaultSaleMonthsBySeason[season] || [];
   return {
     ...product,
     season,
     seasonLabel: product.seasonLabel || seasonLabels[season],
-    saleMode: annualCard ? "available" : "preorder",
+    saleMonths,
+    saleMode: productSaleMode({ ...product, season, saleMonths }),
     preorderNote: product.preorderNote || (product.id === "eggs" ? "全年按当期鸡舍产量，每周分批发出" : `${seasonLabels[season]}季成熟后按批次发出`),
   };
 }
@@ -447,7 +481,7 @@ function parseRoute(pathname = window.location.pathname) {
 
 const pageMeta = {
   home: ["山大王农场｜来自山林的自然味道", "顺着节气采摘，把此刻成熟的山间食物认真送到你家。"],
-  shop: ["四季商城｜山大王农场", "查看山大王农场春夏秋冬的预售批次，以及正常售卖的散养鸡蛋年卡。"],
+  shop: ["四季商城｜山大王农场", "查看山大王农场春夏秋冬的食物：当季正常售卖，非当季保留预售。"],
   farm: ["农场此刻｜山大王农场", "从清晨到傍晚，查看山大王农场今天正在发生的采摘、捡蛋、分拣与装箱。"],
   redeem: ["卡券兑换｜山大王农场", "验证卡券、选择当季食物并完成补差与收货信息。"],
   checkout: ["订单结算｜山大王农场", "确认商品、收货地址、配送方式与支付信息。"],
@@ -678,10 +712,10 @@ function ImmersiveHero({ variant, now, navigate }) {
       secondary: ["进入农场", "/farm"],
     },
     shop: {
-      eyebrow: "四季商城 · 先预订，成熟后发出",
+      eyebrow: "四季商城 · 当季可售，非当季可预订",
       title: <>从春日新鲜，<br />走到冬藏年味</>,
-      copy: <>春笋、夏果、秋收与冬藏都有自己的时间。<br />预售批次跟着物候更新，年卡继续正常售卖。</>,
-      primary: ["查看四季预售", "#shop-products"],
+      copy: <>春笋、夏果、秋收与冬藏都有自己的时间。<br />眼下成熟的直接选购，下一季的可以提前预订。</>,
+      primary: ["查看四季货架", "#shop-products"],
       secondary: ["看今天的农事", "/farm"],
     },
     farm: {
@@ -737,8 +771,8 @@ function HomeContent({ addToCart, navigate, liveFarmLogs, products }) {
 
       <section className="products-section section-shell">
         <div className="section-intro">
-          <div><p className="eyebrow dark">四季预售</p><h2>一年四季，等成熟再见</h2></div>
-          <div className="section-intro-action"><p>春笋、夏果、秋收与冬藏先进入预售；只有鸡蛋年卡正常售卖。每一批的成熟与预计发出时间，都在四季商城里更新。</p><button className="text-link" onClick={() => navigate("/shop")}>走进四季商城 <ArrowRight /></button></div>
+          <div><p className="eyebrow dark">四季货架</p><h2>当季直接选，下一季提前等</h2></div>
+          <div className="section-intro-action"><p>眼下正成熟的商品正常售卖，其他季节保留在货架并标注预售；全年禽蛋与年卡不受季节限制。每一批的预计发出时间，都在四季商城里更新。</p><button className="text-link" onClick={() => navigate("/shop")}>走进四季商城 <ArrowRight /></button></div>
         </div>
         <ProductGrid items={["spring-bamboo-shoots", "peaches", "autumn-persimmons", "winter-tangerines", "egg-annual-card"].map((id) => products.find((product) => product.id === id)).filter(Boolean)} addToCart={addToCart} navigate={navigate} />
       </section>
@@ -788,8 +822,8 @@ function ShopContent({ addToCart, navigate, products }) {
   return (
     <section id="shop-products" className="shop-page section-shell">
       <div className="shop-page-heading">
-        <div><p className="eyebrow dark">四季货架</p><h2>先预订这一季，成熟以后再出发</h2></div>
-        <p>四季商品以预售批次呈现，预计时间会随天气与物候校准；鸡蛋年卡保持正常购买和后续激活。</p>
+        <div><p className="eyebrow dark">四季货架</p><h2>当季正常售卖，非当季提前预订</h2></div>
+        <p>系统会按真实可售月份自动切换：眼下成熟的商品可直接购买，下一季的商品显示预售；全年禽蛋与年卡始终可选。</p>
       </div>
       <div className="shop-filters" role="group" aria-label="按四季筛选商品">
         {[["all", "全部四季"], ["spring", "春日新鲜"], ["summer", "盛夏果香"], ["autumn", "秋收风味"], ["winter", "冬藏年味"], ["annual", "全年禽蛋与年卡"]].map(([value, label]) => <button className={filter === value ? "is-active" : ""} key={value} onClick={() => setFilter(value)}>{label}</button>)}

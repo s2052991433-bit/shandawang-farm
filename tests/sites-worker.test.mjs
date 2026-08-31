@@ -120,14 +120,20 @@ test("keeps production password hashing within the worker runtime limit", () => 
   assert.equal(__test.PASSWORD_ITERATIONS, 100000);
 });
 
-test("keeps the four-season catalog in preorder while the annual card remains available", () => {
+test("opens each product in its real selling months and keeps other seasons in preorder", () => {
   const products = __test.DEFAULT_PRODUCTS;
   const annualCard = products.find((product) => product.id === "egg-annual-card");
-  const seasonal = products.filter((product) => product.id !== "egg-annual-card");
+  const product = (id) => products.find((item) => item.id === id);
 
   assert.equal(products.length, 17);
   assert.equal(annualCard.saleMode, "available");
-  assert.ok(seasonal.every((product) => product.saleMode === "preorder"));
+  assert.equal(__test.productSaleMode(product("peaches"), 8), "available");
+  assert.equal(__test.productSaleMode(product("bayberries"), 8), "preorder");
+  assert.equal(__test.productSaleMode(product("spring-bamboo-shoots"), 3), "available");
+  assert.equal(__test.productSaleMode(product("spring-bamboo-shoots"), 8), "preorder");
+  assert.equal(__test.productSaleMode(product("autumn-persimmons"), 10), "available");
+  assert.equal(__test.productSaleMode(product("winter-tangerines"), 12), "available");
+  assert.equal(__test.productSaleMode(product("eggs"), 8), "available");
   assert.deepEqual(new Set(products.map((product) => product.season)), new Set(["spring", "summer", "autumn", "winter", "annual"]));
   assert.ok(["spring-bamboo-shoots", "peaches", "autumn-persimmons", "ningbo-rice-cakes"].every((id) => products.some((product) => product.id === id)));
 });

@@ -174,11 +174,41 @@ const PRODUCT_SEASON_BY_ID = {
   "fresh-edamame": "autumn", "ningbo-rice-cakes": "winter", eggs: "annual", "egg-annual-card": "annual",
 };
 const PRODUCT_SEASON_LABELS = { spring: "春", summer: "夏", autumn: "秋", winter: "冬", annual: "全年" };
+const DEFAULT_SALE_MONTHS_BY_SEASON = {
+  spring: [2, 3, 4],
+  summer: [5, 6, 7, 8],
+  autumn: [9, 10],
+  winter: [11, 12, 1],
+  annual: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+};
+const PRODUCT_SALE_MONTHS_BY_ID = {
+  bayberries: [6, 7], peaches: [7, 8], "weekly-vegetable-basket": [5, 6, 7, 8], "farm-tomatoes": [5, 6, 7, 8], "farm-cucumbers": [5, 6, 7, 8], "purple-eggplants": [6, 7, 8],
+  "fresh-edamame": [8, 9, 10], "baby-bok-choy": [2, 3, 4, 9, 10, 11], "spring-bamboo-shoots": [3, 4], "spring-strawberries": [2, 3, 4],
+  "autumn-persimmons": [10, 11], "autumn-sweet-potatoes": [10, 11], "winter-tangerines": [11, 12], "winter-greens": [12, 1, 2], "ningbo-rice-cakes": [11, 12, 1, 2],
+};
+
+function productSeason(product) {
+  return product.season || PRODUCT_SEASON_BY_ID[product.id] || "summer";
+}
+
+function productSaleMonths(product) {
+  const season = productSeason(product);
+  return product.saleMonths || PRODUCT_SALE_MONTHS_BY_ID[product.id] || DEFAULT_SALE_MONTHS_BY_SEASON[season] || [];
+}
+
+function productSaleMode(product, month) {
+  const season = productSeason(product);
+  if (product.id === "egg-annual-card" || season === "annual") return "available";
+  const currentMonth = Number(month || new Date().getMonth() + 1);
+  return productSaleMonths(product).map(Number).includes(currentMonth) ? "available" : "preorder";
+}
+
 DEFAULT_PRODUCTS.forEach(function (product) {
-  const season = product.season || PRODUCT_SEASON_BY_ID[product.id] || "summer";
+  const season = productSeason(product);
   product.season = season;
   product.seasonLabel = product.seasonLabel || PRODUCT_SEASON_LABELS[season];
-  product.saleMode = product.id === "egg-annual-card" ? "available" : "preorder";
+  product.saleMonths = productSaleMonths(product);
+  product.saleMode = productSaleMode(product);
   product.preorderNote = product.preorderNote || (product.id === "eggs" ? "全年按当期鸡舍产量，每周分批发出" : PRODUCT_SEASON_LABELS[season] + "季成熟后按批次发出");
 });
 
@@ -232,7 +262,12 @@ function cents(value) {
 
 function publicProduct(row) {
   const data = safeJson(row.data_json, {});
-  return Object.assign({}, data, { id: row.id, name: row.name, category: row.category, categoryLabel: row.category_label, price: row.price_cents / 100, inventory: row.inventory, status: row.sales_status, active: Boolean(row.active), sortOrder: row.sort_order, updatedAt: row.updated_at });
+  const product = Object.assign({}, data, { id: row.id, name: row.name, category: row.category, categoryLabel: row.category_label, price: row.price_cents / 100, inventory: row.inventory, status: row.sales_status, active: Boolean(row.active), sortOrder: row.sort_order, updatedAt: row.updated_at });
+  product.season = productSeason(product);
+  product.seasonLabel = product.seasonLabel || PRODUCT_SEASON_LABELS[product.season];
+  product.saleMonths = productSaleMonths(product);
+  product.saleMode = productSaleMode(product);
+  return product;
 }
 
 function publicFarmLog(row) {
@@ -493,7 +528,9 @@ async function pricedItems(env, items) {
     const quantity = Math.min(99, Math.max(1, Math.floor(Number(item.quantity || 1))));
     if (row.inventory < quantity) throw new Error("insufficient_inventory");
     const data = safeJson(row.data_json, {});
-    priced.push({ id: row.id, name: row.name, spec: data.spec || "", image: data.image || "", quantity: quantity, price: row.price_cents / 100, priceCents: row.price_cents, fulfillment: data.fulfillment || {}, saleMode: row.id === "egg-annual-card" ? "available" : "preorder", season: data.season || PRODUCT_SEASON_BY_ID[row.id] || "summer", seasonLabel: data.seasonLabel || PRODUCT_SEASON_LABELS[data.season || PRODUCT_SEASON_BY_ID[row.id] || "summer"], preorderNote: data.preorderNote || "成熟后按批次发出" });
+    const seasonalProduct = Object.assign({}, data, { id: row.id });
+    const season = productSeason(seasonalProduct);
+    priced.push({ id: row.id, name: row.name, spec: data.spec || "", image: data.image || "", quantity: quantity, price: row.price_cents / 100, priceCents: row.price_cents, fulfillment: data.fulfillment || {}, saleMode: productSaleMode(seasonalProduct), season: season, seasonLabel: data.seasonLabel || PRODUCT_SEASON_LABELS[season], preorderNote: data.preorderNote || "成熟后按批次发出" });
   }
   return priced;
 }
@@ -759,4 +796,4 @@ export default {
   },
 };
 
-export const __test = { PASSWORD_ITERATIONS, DEFAULT_PRODUCTS, normalizePhone, validPhone, passwordProblem, passwordHash, verifyPassword, constantTimeEqual, adminSessionCookie, apiRouteKnown };
+export const __test = { PASSWORD_ITERATIONS, DEFAULT_PRODUCTS, productSaleMode, normalizePhone, validPhone, passwordProblem, passwordHash, verifyPassword, constantTimeEqual, adminSessionCookie, apiRouteKnown };
