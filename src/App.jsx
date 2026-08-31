@@ -21,6 +21,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { storeApi } from "./services/storeApi";
+import { AdminApp } from "./admin/AdminApp";
 
 const seasons = [
   ["立秋", "8月7日", "山风开始转凉"],
@@ -29,7 +30,7 @@ const seasons = [
   ["秋分", "9月22日", "新米与秋菜登场"],
 ];
 
-const products = [
+const fallbackProducts = [
   {
     id: "bayberries",
     name: "山里红杨梅",
@@ -252,6 +253,88 @@ const products = [
   },
 ];
 
+const seasonalProducts = [
+  {
+    id: "spring-bamboo-shoots", name: "山林春笋", category: "vegetables", categoryLabel: "春日时蔬", price: 58,
+    status: "春季预售", detail: "清晨现挖 · 2.5kg", spec: "2.5kg 透气装", image: "/assets/season-spring-harvest.jpg",
+    origin: "宁波山林竹园 · 农场自产", delivery: "春笋破土后按成熟批次发出", storage: "收到后冷藏，建议3天内食用",
+    description: "不提前定死采挖日。笋尖破土、肉质仍嫩时才从竹园带回，完成去泥与透气装箱。", batch: "2027 清明前后批次",
+    harvest: "预计3—4月，跟随山间温度分批采挖", sceneImage: "/assets/season-spring-harvest.jpg", sceneTitle: "笋尖冒出土面，春天才真正开始",
+    sceneBody: "竹园湿度、坡向与连续晴雨都会改变春笋的生长速度。预售订单先排队，成熟以后再通知具体发出时间。",
+    season: "spring", seasonLabel: "春", preorderNote: "预计3—4月成熟后分批发出",
+  },
+  {
+    id: "spring-strawberries", name: "春日露水草莓", category: "farm-grown", categoryLabel: "春日鲜果", price: 88,
+    status: "春季预售", detail: "自然转红 · 2盒", spec: "2盒防压保鲜装", image: "/assets/season-spring-harvest.jpg",
+    origin: "宁波山间草莓棚 · 当地精选", delivery: "达到甜度后清晨采摘、当天发出", storage: "收到后冷藏，建议当天食用",
+    description: "以香气、转色和果肉硬度决定采摘，不为了赶订单提前摘下还没熟的果子。", batch: "2027 春日首批",
+    harvest: "预计2—4月，成熟一批采一批", sceneImage: "/assets/season-spring-harvest.jpg", sceneTitle: "颜色红透，香气也到了",
+    sceneBody: "草莓娇嫩，采后直接进入小盒与防压层。预售让每天采下的数量与当天能发出的数量保持一致。",
+    season: "spring", seasonLabel: "春", preorderNote: "预计2—4月成熟后分批发出",
+  },
+  {
+    id: "autumn-persimmons", name: "山坡甜柿", category: "farm-grown", categoryLabel: "秋日鲜果", price: 76,
+    status: "秋季预售", detail: "树上转色 · 8枚", spec: "8枚果托装", image: "/assets/season-autumn-harvest.jpg",
+    origin: "山大王农场南坡 · 农场自产", delivery: "果面转橙、糖度达到后分批发出", storage: "常温后熟，变软后冷藏",
+    description: "等秋风把颜色慢慢推深，再按成熟度逐树采摘。果型不必完全一样，但每枚都有明确批次。", batch: "2027 寒露前后批次",
+    harvest: "预计9—10月，转色后分批采收", sceneImage: "/assets/season-autumn-harvest.jpg", sceneTitle: "秋风来了，甜味才慢慢聚起来",
+    sceneBody: "同一棵树上的柿子也不会同时成熟。预售订单按下单顺序匹配采摘批次，到发出前再确认软硬度。",
+    season: "autumn", seasonLabel: "秋", preorderNote: "预计9—10月成熟后分批发出",
+  },
+  {
+    id: "autumn-sweet-potatoes", name: "山地蜜薯", category: "farm-grown", categoryLabel: "秋收根茎", price: 46,
+    status: "秋季预售", detail: "粉糯香甜 · 5kg", spec: "5kg 透气纸箱", image: "/assets/season-autumn-harvest.jpg",
+    origin: "山大王农场旱地 · 农场自产", delivery: "霜降前后起垄晾干后发出", storage: "阴凉通风保存，避免潮湿",
+    description: "等薯块长足、表皮稳定后再起垄。带一点自然大小差异，不做过度清洗，便于存放。", batch: "2027 秋收批次",
+    harvest: "预计10—11月集中收获", sceneImage: "/assets/season-autumn-harvest.jpg", sceneTitle: "土松开以后，秋收从地下露出来",
+    sceneBody: "起出的蜜薯先在通风处短暂晾放，表皮稳定后再装箱。预售数量会跟着实际收成调整。",
+    season: "autumn", seasonLabel: "秋", preorderNote: "预计10—11月收获后发出",
+  },
+  {
+    id: "winter-tangerines", name: "山间蜜橘", category: "ningbo-select", categoryLabel: "冬日鲜果", price: 68,
+    status: "冬季预售", detail: "薄皮多汁 · 5kg", spec: "5kg 分层果箱", image: "/assets/season-winter-harvest.jpg",
+    origin: "宁波本地橘园 · 当地精选", delivery: "降温增甜后采摘，按批次发出", storage: "阴凉通风保存",
+    description: "经历初冬温差后再测甜度、看果皮与果蒂状态，达到要求的一批果子才进入预售履约。", batch: "2027 小雪前后批次",
+    harvest: "预计11—12月分批采摘", sceneImage: "/assets/season-winter-harvest.jpg", sceneTitle: "天气转冷，橘子的甜慢慢稳下来",
+    sceneBody: "冬橘不是越早摘越好。预售订单等待自然增甜，采下后按果面和软硬度分级，再分层装箱。",
+    season: "winter", seasonLabel: "冬", preorderNote: "预计11—12月成熟后分批发出",
+  },
+  {
+    id: "winter-greens", name: "霜打冬青菜", category: "vegetables", categoryLabel: "冬日时蔬", price: 26,
+    status: "冬季预售", detail: "清甜软糯 · 1kg", spec: "1kg 保鲜装", image: "/assets/season-winter-harvest.jpg",
+    origin: "山大王农场冬菜地 · 农场自产", delivery: "经历低温后清晨采收，当日发出", storage: "冷藏保存，建议3天内食用",
+    description: "让青菜经历自然低温，叶片积累更多清甜。发货日清晨采下，去老叶后直接进入时蔬箱。", batch: "2027 冬至前后批次",
+    harvest: "预计12月至次年2月按地块采收", sceneImage: "/assets/season-winter-harvest.jpg", sceneTitle: "落过霜的菜地，有冬天自己的甜",
+    sceneBody: "低温会改变叶菜风味，也让生长速度变慢。预售批次跟着天气走，到可以采收时再通知发出。",
+    season: "winter", seasonLabel: "冬", preorderNote: "预计冬至前后按地块采收发出",
+  },
+];
+
+const productSeasonById = {
+  "baby-bok-choy": "spring",
+  bayberries: "summer", peaches: "summer", "weekly-vegetable-basket": "summer", "farm-tomatoes": "summer", "farm-cucumbers": "summer", "purple-eggplants": "summer",
+  "fresh-edamame": "autumn",
+  "ningbo-rice-cakes": "winter", eggs: "annual",
+  "egg-annual-card": "annual",
+};
+const seasonLabels = { spring: "春", summer: "夏", autumn: "秋", winter: "冬", annual: "全年" };
+
+function normalizeProduct(product) {
+  const season = product.season || productSeasonById[product.id] || "summer";
+  const annualCard = product.id === "egg-annual-card";
+  return {
+    ...product,
+    season,
+    seasonLabel: product.seasonLabel || seasonLabels[season],
+    saleMode: annualCard ? "available" : "preorder",
+    preorderNote: product.preorderNote || (product.id === "eggs" ? "全年按当期鸡舍产量，每周分批发出" : `${seasonLabels[season]}季成熟后按批次发出`),
+  };
+}
+
+const allFallbackProducts = [...fallbackProducts, ...seasonalProducts]
+  .map(normalizeProduct)
+  .sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999));
+
 const money = (value) => `¥${Number(value || 0).toFixed(2).replace(".00", "")}`;
 
 const farmLogTemplates = [
@@ -351,6 +434,7 @@ function buildLiveFarmLogs(reference = new Date()) {
 
 function parseRoute(pathname = window.location.pathname) {
   const path = pathname.replace(/\/+$/, "") || "/";
+  if (path === "/admin" || path.startsWith("/admin/")) return { name: "admin", path };
   const productMatch = path.match(/^\/products\/([^/]+)$/);
   if (productMatch) return { name: "product", productId: decodeURIComponent(productMatch[1]), path };
   if (path === "/shop") return { name: "shop", path };
@@ -363,7 +447,7 @@ function parseRoute(pathname = window.location.pathname) {
 
 const pageMeta = {
   home: ["山大王农场｜来自山林的自然味道", "顺着节气采摘，把此刻成熟的山间食物认真送到你家。"],
-  shop: ["当季商城｜山大王农场", "查看山大王农场当季在售、农场自产与宁波精选食物。"],
+  shop: ["四季商城｜山大王农场", "查看山大王农场春夏秋冬的预售批次，以及正常售卖的散养鸡蛋年卡。"],
   farm: ["农场此刻｜山大王农场", "从清晨到傍晚，查看山大王农场今天正在发生的采摘、捡蛋、分拣与装箱。"],
   redeem: ["卡券兑换｜山大王农场", "验证卡券、选择当季食物并完成补差与收货信息。"],
   checkout: ["订单结算｜山大王农场", "确认商品、收货地址、配送方式与支付信息。"],
@@ -381,6 +465,8 @@ export function App() {
   const [panel, setPanel] = useState(null);
   const [notice, setNotice] = useState("");
   const [farmNow, setFarmNow] = useState(() => new Date());
+  const [catalogProducts, setCatalogProducts] = useState(allFallbackProducts);
+  const [remoteFarmLogs, setRemoteFarmLogs] = useState(null);
   const [cart, setCart] = useState(() => {
     try {
       return JSON.parse(window.localStorage.getItem("shandawang-cart") || "[]");
@@ -388,7 +474,20 @@ export function App() {
       return [];
     }
   });
-  const liveFarmLogs = useMemo(() => buildLiveFarmLogs(farmNow), [farmNow]);
+  const fallbackFarmLogs = useMemo(() => buildLiveFarmLogs(farmNow), [farmNow]);
+  const liveFarmLogs = remoteFarmLogs?.length ? remoteFarmLogs : fallbackFarmLogs;
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([storeApi.listProducts(), storeApi.listFarmLogs()]).then(([nextProducts, nextLogs]) => {
+      if (!active) return;
+      if (nextProducts?.length) setCatalogProducts(nextProducts.map(normalizeProduct));
+      if (nextLogs?.length) setRemoteFarmLogs(nextLogs);
+    }).catch(() => {
+      // Keep the public storefront available if the backend is temporarily offline.
+    });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -421,7 +520,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const product = route.name === "product" ? products.find((item) => item.id === route.productId) : null;
+    const product = route.name === "product" ? catalogProducts.find((item) => item.id === route.productId) : null;
     const [title, description] = product
       ? [`${product.name}｜山大王农场`, `${product.batch}。${product.delivery}。`]
       : pageMeta[route.name] || pageMeta.home;
@@ -433,7 +532,7 @@ export function App() {
       document.head.appendChild(descriptionTag);
     }
     descriptionTag.content = description;
-  }, [route]);
+  }, [route, catalogProducts]);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -442,9 +541,9 @@ export function App() {
     setCart((current) => {
       const existing = current.find((item) => item.id === product.id);
       if (existing) return current.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item);
-      return [...current, { id: product.id, name: product.name, price: product.price, image: product.image, spec: product.spec, quantity }];
+      return [...current, { id: product.id, name: product.name, price: product.price, image: product.image, spec: product.spec, quantity, saleMode: product.saleMode, seasonLabel: product.seasonLabel, preorderNote: product.preorderNote }];
     });
-    setNotice(`${product.name} 已加入购物袋`);
+    setNotice(product.saleMode === "preorder" ? `${product.name} 已加入预售单` : `${product.name} 已加入购物袋`);
   };
 
   const changeQuantity = (productId, delta) => {
@@ -480,14 +579,16 @@ export function App() {
     }
   };
 
-  const currentProduct = route.name === "product" ? products.find((product) => product.id === route.productId) || products[0] : null;
+  const currentProduct = route.name === "product" ? catalogProducts.find((product) => product.id === route.productId) || catalogProducts[0] : null;
+
+  if (route.name === "admin") return <AdminApp />;
 
   if (route.name === "checkout") {
     return <CheckoutFlow cart={cart} close={() => navigate("/shop")} complete={() => setCart([])} />;
   }
 
   if (route.name === "redeem") {
-    return <VoucherFlow close={() => navigate("/")} />;
+    return <VoucherFlow close={() => navigate("/")} products={catalogProducts} />;
   }
 
   return (
@@ -499,7 +600,7 @@ export function App() {
         </button>
 
         <nav className={`main-nav ${mobileOpen ? "is-open" : ""}`} aria-label="主导航">
-          <button className={route.name === "shop" || route.name === "product" ? "is-active" : ""} onClick={() => navigate("/shop")}>当季商城 <CaretDown size={13} /></button>
+          <button className={route.name === "shop" || route.name === "product" ? "is-active" : ""} onClick={() => navigate("/shop")}>四季商城 <CaretDown size={13} /></button>
           <button className={route.name === "farm" ? "is-active" : ""} onClick={() => navigate("/farm")}>农场此刻</button>
           <button onClick={() => navigate("/redeem")}>卡券兑换</button>
           <button className={route.name === "about" ? "is-active" : ""} onClick={() => navigate("/about")}>关于山大王</button>
@@ -514,8 +615,8 @@ export function App() {
       </header>
 
       <main>
-        {route.name === "home" && <><ImmersiveHero variant="home" now={farmNow} navigate={navigate} /><HomeContent addToCart={addToCart} navigate={navigate} liveFarmLogs={liveFarmLogs} /></>}
-        {route.name === "shop" && <><ImmersiveHero variant="shop" now={farmNow} navigate={navigate} /><ShopContent addToCart={addToCart} navigate={navigate} /></>}
+        {route.name === "home" && <><ImmersiveHero variant="home" now={farmNow} navigate={navigate} /><HomeContent addToCart={addToCart} navigate={navigate} liveFarmLogs={liveFarmLogs} products={catalogProducts} /></>}
+        {route.name === "shop" && <><ImmersiveHero variant="shop" now={farmNow} navigate={navigate} /><ShopContent addToCart={addToCart} navigate={navigate} products={catalogProducts} /></>}
         {route.name === "farm" && <><ImmersiveHero variant="farm" now={farmNow} navigate={navigate} /><FarmContent initialDate={route.date} farmLogs={liveFarmLogs} navigate={navigate} /></>}
         {route.name === "product" && <ProductPage key={currentProduct.id} product={currentProduct} addToCart={addToCart} navigate={navigate} />}
         {route.name === "about" && <AboutContent navigate={navigate} />}
@@ -527,14 +628,14 @@ export function App() {
       </footer>
 
       {panel === "search" && (
-        <SearchPanel close={() => setPanel(null)} navigate={navigate} />
+        <SearchPanel close={() => setPanel(null)} navigate={navigate} products={catalogProducts} />
       )}
 
       {panel === "cart" && (
         <div className="overlay" role="dialog" aria-modal="true" aria-label="购物袋">
           <button className="overlay-backdrop" aria-label="关闭购物袋" onClick={() => setPanel(null)} />
           <aside className="cart-panel">
-            <div className="panel-title"><span>选购袋</span><IconButton label="关闭" onClick={() => setPanel(null)}><X /></IconButton></div>
+            <div className="panel-title"><span>选购与预售</span><IconButton label="关闭" onClick={() => setPanel(null)}><X /></IconButton></div>
             {cart.length === 0 ? (
               <div className="cart-empty">
                 <ShoppingBagOpen className="empty-icon" weight="thin" />
@@ -547,7 +648,7 @@ export function App() {
                   {cart.map((item) => (
                     <article className="cart-line" key={item.id}>
                       <img className={item.id === "egg-annual-card" ? "is-card-cover" : undefined} src={item.image} alt={item.name} />
-                      <div><h3>{item.name}</h3><p>{item.spec}</p><strong>{money(item.price)}</strong></div>
+                      <div><h3>{item.name}</h3><p>{item.spec}</p>{item.saleMode === "preorder" && <span className="cart-preorder-label">{item.seasonLabel}季预售 · {item.preorderNote}</span>}<strong>{money(item.price)}</strong></div>
                       <QuantityControl value={item.quantity} decrease={() => changeQuantity(item.id, -1)} increase={() => changeQuantity(item.id, 1)} />
                     </article>
                   ))}
@@ -577,10 +678,10 @@ function ImmersiveHero({ variant, now, navigate }) {
       secondary: ["进入农场", "/farm"],
     },
     shop: {
-      eyebrow: "当季商城 · 成熟一批，发出一批",
-      title: <>从山里出发，<br />只卖这一季</>,
-      copy: <>这里没有全年不变的货架。果实、蔬菜和禽蛋<br />按照成熟批次出现，也按照土地的时间离场。</>,
-      primary: ["查看本季在售", "#shop-products"],
+      eyebrow: "四季商城 · 先预订，成熟后发出",
+      title: <>从春日新鲜，<br />走到冬藏年味</>,
+      copy: <>春笋、夏果、秋收与冬藏都有自己的时间。<br />预售批次跟着物候更新，年卡继续正常售卖。</>,
+      primary: ["查看四季预售", "#shop-products"],
       secondary: ["看今天的农事", "/farm"],
     },
     farm: {
@@ -621,7 +722,7 @@ function ImmersiveHero({ variant, now, navigate }) {
   );
 }
 
-function HomeContent({ addToCart, navigate, liveFarmLogs }) {
+function HomeContent({ addToCart, navigate, liveFarmLogs, products }) {
   const todayActivity = liveFarmLogs[0].activities[0];
   return (
     <>
@@ -636,10 +737,10 @@ function HomeContent({ addToCart, navigate, liveFarmLogs }) {
 
       <section className="products-section section-shell">
         <div className="section-intro">
-          <div><p className="eyebrow dark">当季在售</p><h2>本季值得买</h2></div>
-          <div className="section-intro-action"><p>首页只放这一季最值得带走的三样。更多批次、分类和发出时间，都在当季商城里。</p><button className="text-link" onClick={() => navigate("/shop")}>走进当季商城 <ArrowRight /></button></div>
+          <div><p className="eyebrow dark">四季预售</p><h2>一年四季，等成熟再见</h2></div>
+          <div className="section-intro-action"><p>春笋、夏果、秋收与冬藏先进入预售；只有鸡蛋年卡正常售卖。每一批的成熟与预计发出时间，都在四季商城里更新。</p><button className="text-link" onClick={() => navigate("/shop")}>走进四季商城 <ArrowRight /></button></div>
         </div>
-        <ProductGrid items={products.filter(({ id }) => ["weekly-vegetable-basket", "ningbo-rice-cakes", "egg-annual-card"].includes(id))} addToCart={addToCart} navigate={navigate} />
+        <ProductGrid items={["spring-bamboo-shoots", "peaches", "autumn-persimmons", "winter-tangerines", "egg-annual-card"].map((id) => products.find((product) => product.id === id)).filter(Boolean)} addToCart={addToCart} navigate={navigate} />
       </section>
 
       <section className="home-live-chapter">
@@ -681,17 +782,17 @@ function HomeContent({ addToCart, navigate, liveFarmLogs }) {
   );
 }
 
-function ShopContent({ addToCart, navigate }) {
+function ShopContent({ addToCart, navigate, products }) {
   const [filter, setFilter] = useState("all");
-  const visibleProducts = filter === "all" ? products : products.filter((product) => product.category === filter);
+  const visibleProducts = filter === "all" ? products : products.filter((product) => product.season === filter);
   return (
     <section id="shop-products" className="shop-page section-shell">
       <div className="shop-page-heading">
-        <div><p className="eyebrow dark">本季货架</p><h2>成熟以后，才来到这里</h2></div>
-        <p>商品不是全年固定陈列。每一次在售，都对应一个真实批次、一个发出时间和一套包装方式。</p>
+        <div><p className="eyebrow dark">四季货架</p><h2>先预订这一季，成熟以后再出发</h2></div>
+        <p>四季商品以预售批次呈现，预计时间会随天气与物候校准；鸡蛋年卡保持正常购买和后续激活。</p>
       </div>
-      <div className="shop-filters" role="group" aria-label="筛选商品来源">
-        {[["all", "全部当季"], ["vegetables", "时令时蔬"], ["farm-grown", "农场自产"], ["ningbo-select", "宁波精选"], ["ningbo-specialty", "宁波特产"], ["gift-card", "礼品卡"]].map(([value, label]) => <button className={filter === value ? "is-active" : ""} key={value} onClick={() => setFilter(value)}>{label}</button>)}
+      <div className="shop-filters" role="group" aria-label="按四季筛选商品">
+        {[["all", "全部四季"], ["spring", "春日新鲜"], ["summer", "盛夏果香"], ["autumn", "秋收风味"], ["winter", "冬藏年味"], ["annual", "全年禽蛋与年卡"]].map(([value, label]) => <button className={filter === value ? "is-active" : ""} key={value} onClick={() => setFilter(value)}>{label}</button>)}
       </div>
       <ProductGrid items={visibleProducts} addToCart={addToCart} navigate={navigate} />
       <aside className="shop-note">
@@ -708,10 +809,14 @@ function ProductGrid({ items, addToCart, navigate }) {
     <div className="product-grid">
       {items.map((product) => (
         <article className="product-card" key={product.id}>
-          <button className="product-image-wrap" onClick={() => navigate(`/products/${product.id}`)}><img className={product.id === "egg-annual-card" ? "is-card-cover" : undefined} src={product.image} alt={product.name} style={{ viewTransitionName: `product-${product.id}` }} /><span>{product.status}</span></button>
+          <button className={`product-image-wrap ${product.saleMode === "preorder" ? "is-preorder" : ""}`} onClick={() => navigate(`/products/${product.id}`)}>
+            <img className={product.id === "egg-annual-card" ? "is-card-cover" : undefined} src={product.image} alt={product.name} style={{ viewTransitionName: `product-${product.id}` }} />
+            <span className="product-status">{product.status}</span>
+            {product.saleMode === "preorder" && <span className="preorder-mask"><small>{product.season === "annual" ? "全年批次" : `${product.seasonLabel}季批次`}</small><strong>预售</strong><em>{product.preorderNote}</em></span>}
+          </button>
           <div className="product-info">
             <button className="product-title" onClick={() => navigate(`/products/${product.id}`)}><small>{product.categoryLabel}</small><h3>{product.name}</h3><p>{product.detail}</p></button>
-            <div className="product-buy"><strong>{money(product.price)}</strong><button onClick={() => addToCart(product)} aria-label={`把${product.name}加入选购袋`}><ShoppingCartSimple /></button></div>
+            <div className="product-buy"><strong>{money(product.price)}</strong><button className={product.saleMode === "preorder" ? "is-preorder" : ""} onClick={() => addToCart(product)} aria-label={`把${product.name}加入${product.saleMode === "preorder" ? "预售单" : "购物袋"}`}><ShoppingCartSimple /></button></div>
           </div>
         </article>
       ))}
@@ -723,9 +828,9 @@ function ProductPage({ product, addToCart, navigate }) {
   const [quantity, setQuantity] = useState(1);
   return (
     <article className="product-page">
-      <button className="page-back" onClick={() => navigate("/shop")}><ArrowLeft /> 回到当季商城</button>
+      <button className="page-back" onClick={() => navigate("/shop")}><ArrowLeft /> 回到四季商城</button>
       <section className="product-page-hero">
-        <div className="product-page-image"><img className={product.id === "egg-annual-card" ? "is-card-cover" : undefined} src={product.image} alt={product.name} style={{ viewTransitionName: `product-${product.id}` }} /><span>{product.status}</span></div>
+        <div className={`product-page-image ${product.saleMode === "preorder" ? "is-preorder" : ""}`}><img className={product.id === "egg-annual-card" ? "is-card-cover" : undefined} src={product.image} alt={product.name} style={{ viewTransitionName: `product-${product.id}` }} /><span>{product.status}</span>{product.saleMode === "preorder" && <div className="product-page-preorder"><small>{product.season === "annual" ? "全年批次" : `${product.seasonLabel}季批次`}</small><strong>预售</strong><em>{product.preorderNote}</em></div>}</div>
         <div className="product-page-copy">
           <p className="eyebrow dark">{product.categoryLabel} · {product.batch}</p>
           <h1>{product.name}</h1>
@@ -738,7 +843,8 @@ function ProductPage({ product, addToCart, navigate }) {
             <div><dt>保存</dt><dd>{product.storage}</dd></div>
           </dl>
           <div className="product-page-buy"><div><small>{product.spec}</small><strong>{money(product.price)}</strong></div><QuantityControl value={quantity} decrease={() => setQuantity((value) => Math.max(1, value - 1))} increase={() => setQuantity((value) => value + 1)} /></div>
-          <button className="button button-primary product-add" onClick={() => addToCart(product, quantity)}>加入购物袋 · {money(product.price * quantity)}</button>
+          {product.saleMode === "preorder" && <p className="preorder-explainer"><Clock /> 预售商品先锁定批次，成熟与发出时间会在订单和农场日志中同步。</p>}
+          <button className="button button-primary product-add" onClick={() => addToCart(product, quantity)}>{product.saleMode === "preorder" ? "加入预售单" : "加入购物袋"} · {money(product.price * quantity)}</button>
         </div>
       </section>
       <section className="product-story-chapter">
@@ -770,16 +876,16 @@ function AboutContent({ navigate }) {
   );
 }
 
-function SearchPanel({ close, navigate }) {
+function SearchPanel({ close, navigate, products }) {
   const [query, setQuery] = useState("");
   const matches = products.filter((product) => `${product.name}${product.detail}${product.categoryLabel}`.includes(query.trim()));
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label="搜索商品">
       <button className="overlay-backdrop" aria-label="关闭搜索" onClick={close} />
       <div className="search-panel">
-        <div className="panel-title"><span>搜索当季食物</span><IconButton label="关闭" onClick={close}><X /></IconButton></div>
-        <label className="search-field"><MagnifyingGlass /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="试试“水蜜桃”或“鸡蛋”" /></label>
-        {!query && <p>热门：水蜜桃 · 杨梅 · 初生蛋</p>}
+        <div className="panel-title"><span>搜索四季食物</span><IconButton label="关闭" onClick={close}><X /></IconButton></div>
+        <label className="search-field"><MagnifyingGlass /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="试试“春笋”“水蜜桃”或“年糕”" /></label>
+        {!query && <p>热门：春笋 · 水蜜桃 · 山地蜜薯 · 水磨年糕</p>}
         {query && <div className="search-results">{matches.length ? matches.map((product) => <button key={product.id} onClick={() => navigate(`/products/${product.id}`)}><img className={product.id === "egg-annual-card" ? "is-card-cover" : undefined} src={product.image} alt="" /><span><strong>{product.name}</strong><small>{product.detail}</small></span><ArrowRight /></button>) : <p>这一季暂时没有找到相关食物。</p>}</div>}
       </div>
     </div>
@@ -894,7 +1000,7 @@ function ProductDetail({ product, close, addToCart }) {
         <IconButton label="关闭商品详情" className="modal-close" onClick={close}><X /></IconButton>
         <div className="product-modal-image"><img className={product.id === "egg-annual-card" ? "is-card-cover" : undefined} src={product.image} alt={product.name} /><span>{product.status}</span></div>
         <div className="product-modal-copy">
-          <p className="eyebrow dark">当季食物</p>
+          <p className="eyebrow dark">{product.saleMode === "preorder" ? `${product.seasonLabel}季预售` : "正常售卖"}</p>
           <h2>{product.name}</h2>
           <p className="product-modal-description">{product.description}</p>
           <dl>
@@ -907,7 +1013,7 @@ function ProductDetail({ product, close, addToCart }) {
             <div><small>单价</small><strong>{money(product.price)}</strong></div>
             <QuantityControl value={quantity} decrease={() => setQuantity((value) => Math.max(1, value - 1))} increase={() => setQuantity((value) => value + 1)} />
           </div>
-          <button className="button button-primary product-add" onClick={() => addToCart(product, quantity)}>加入购物袋 · {money(product.price * quantity)}</button>
+          <button className="button button-primary product-add" onClick={() => addToCart(product, quantity)}>{product.saleMode === "preorder" ? "加入预售单" : "加入购物袋"} · {money(product.price * quantity)}</button>
         </div>
       </section>
     </div>
@@ -932,7 +1038,7 @@ function OrderLineList({ items }) {
       {items.map((item) => (
         <article key={item.id}>
           <img className={item.id === "egg-annual-card" ? "is-card-cover" : undefined} src={item.image} alt={item.name} />
-          <div><h3>{item.name}</h3><p>{item.spec}</p><span>数量 × {item.quantity}</span></div>
+          <div><h3>{item.name}</h3><p>{item.spec}</p>{item.saleMode === "preorder" && <span className="checkout-preorder-label">{item.seasonLabel}季预售 · {item.preorderNote}</span>}<span>数量 × {item.quantity}</span></div>
           <strong>{money(item.price * item.quantity)}</strong>
         </article>
       ))}
@@ -1022,7 +1128,7 @@ function CheckoutFlow({ cart, close, complete }) {
           <FlowActions back={() => setStep(0)}><button className="button button-primary" onClick={nextFromAddress}>选择配送与支付 <ArrowRight /></button></FlowActions>
         </FlowSection>}
 
-        {step === 2 && <FlowSection eyebrow="03 · 配送与支付" title="最后确认一次" intro="真实支付将在接入后台后由微信或支付宝安全完成。">
+        {step === 2 && <FlowSection eyebrow="03 · 配送与支付" title="最后确认一次" intro="订单会先进入农场后台；支付接口启用后将在这里安全完成付款。">
           <div className="option-section"><h3>配送方式</h3><OptionCard selected={delivery === "standard"} onClick={() => setDelivery("standard")} icon={<Truck />} title="按商品属性配送" note="冷链、常温自动分箱 · 预计1–3天发出" price={shipping === 0 ? "已免配送费" : money(shipping)} /></div>
           <div className="option-section"><h3>支付方式</h3><div className="option-grid"><OptionCard selected={payment === "wechat"} onClick={() => setPayment("wechat")} icon={<Wallet />} title="微信支付" note="后台接入后唤起支付" /><OptionCard selected={payment === "alipay"} onClick={() => setPayment("alipay")} icon={<Wallet />} title="支付宝" note="后台接入后唤起支付" /></div></div>
           <div className="confirm-address"><MapPin /><div><strong>{address.receiver} · {address.phone}</strong><p>{address.province}{address.city}{address.district}{address.detail}</p></div><button onClick={() => setStep(1)}>修改</button></div>
@@ -1031,13 +1137,13 @@ function CheckoutFlow({ cart, close, complete }) {
           <FlowActions back={() => setStep(1)}><button className="button button-primary" disabled={submitting} onClick={submit}>{submitting ? "正在创建订单…" : `提交订单 · ${money(subtotal + shipping)}`}</button></FlowActions>
         </FlowSection>}
 
-        {step === 3 && order && <ResultSection icon={<CheckCircle weight="thin" />} title="订单已经创建" id={order.id} note="当前为前端演示状态。接入支付后台后，这里会自动展示付款结果、预计发货批次和物流进度。" close={close} />}
+        {step === 3 && order && <ResultSection icon={<CheckCircle weight="thin" />} title="订单已经创建" id={order.orderNo || order.id} note="订单已经进入农场后台。支付接口启用后，这里会继续同步付款结果、预计发货批次和物流进度。" close={close} />}
       </main>
     </div>
   );
 }
 
-function VoucherFlow({ close }) {
+function VoucherFlow({ close, products }) {
   const steps = ["验券", "选食物", "补差加购", "收货信息", "确认", "完成"];
   const [step, setStep] = useState(0);
   const [code, setCode] = useState("");
@@ -1050,12 +1156,13 @@ function VoucherFlow({ close }) {
   const [payment, setPayment] = useState("wechat");
   const [redemption, setRedemption] = useState(null);
 
+  const isAnnualCard = voucher?.type === "annual_card";
   const selectedItems = products.filter((product) => quantities[product.id] > 0).map((product) => ({ ...product, quantity: quantities[product.id] }));
-  const subtotal = selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = selectedItems.length === 0 ? 0 : subtotal >= 199 ? 0 : 18;
-  const credit = Math.min(voucher?.balance || 0, subtotal + shipping);
+  const subtotal = isAnnualCard ? voucher.value : selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const shipping = isAnnualCard || selectedItems.length === 0 ? 0 : subtotal >= 199 ? 0 : 18;
+  const credit = isAnnualCard ? subtotal : Math.min(voucher?.balance || 0, subtotal + shipping);
   const topUpAmount = Math.max(0, subtotal + shipping - credit);
-  const remaining = Math.max(0, (voucher?.balance || 0) - subtotal - shipping);
+  const remaining = isAnnualCard ? 0 : Math.max(0, (voucher?.balance || 0) - subtotal - shipping);
 
   const validateCode = async () => {
     if (!code.trim()) { setError("请输入卡券兑换码"); return; }
@@ -1063,7 +1170,7 @@ function VoucherFlow({ close }) {
     try {
       const result = await storeApi.validateVoucher(code);
       setVoucher(result);
-      setStep(1);
+      setStep(result.type === "annual_card" ? 3 : 1);
     } catch (validationError) {
       setError(validationError.message);
     } finally {
@@ -1095,7 +1202,7 @@ function VoucherFlow({ close }) {
         {step === 0 && <FlowSection eyebrow="01 · 卡券校验" title="先看看，这张卡里有什么" intro="输入兑换码后会显示余额、有效期和可兑换范围。">
           <div className="voucher-code-card"><Ticket weight="thin" /><div><span>山大王农场</span><strong>时令礼赠卡</strong><small>SHAN DA WANG FARM GIFT</small></div></div>
           <div className="voucher-code-input"><input value={code} onChange={(event) => setCode(event.target.value)} onKeyDown={(event) => event.key === "Enter" && validateCode()} placeholder="请输入兑换码" /><button className="button button-primary" disabled={loading} onClick={validateCode}>{loading ? "正在校验…" : "验证卡券"}</button></div>
-          <p className="demo-code">体验兑换码：<button onClick={() => setCode("SDW2026")}>SDW2026</button></p>
+          <p className="demo-code">体验兑换码：<button onClick={() => setCode("SDW2026")}>余额礼卡</button> · <button onClick={() => setCode("SDW-EGG-2027-DEMO")}>鸡蛋年卡</button></p>
           {error && <p className="form-error">{error}</p>}
         </FlowSection>}
 
@@ -1111,20 +1218,21 @@ function VoucherFlow({ close }) {
           <FlowActions back={() => setStep(1)}><button className="button button-primary" disabled={!selectedItems.length} onClick={() => setStep(3)}>填写收货地址 <ArrowRight /></button></FlowActions>
         </FlowSection>}
 
-        {step === 3 && <FlowSection eyebrow="04 · 收货信息" title="礼物送到哪里" intro="需要冷链的商品会按地址和批次安排发出。">
+        {step === 3 && <FlowSection eyebrow="04 · 收货信息" title={isAnnualCard ? "未来12个月，送到哪里" : "礼物送到哪里"} intro={isAnnualCard ? "激活后将建立2027年1月至12月的月度寄送计划。" : "需要冷链的商品会按地址和批次安排发出。"}>
+          {isAnnualCard && <div className="annual-redemption-summary"><Ticket weight="thin" /><div><span>2027散养鸡蛋年卡</span><strong>激活以后，月月送到</strong><p>2027年1月开始发货，连续12个月；每月1箱，每箱30枚散养鸡蛋。</p></div></div>}
           <AddressForm value={address} onChange={setAddress} error={addressError} />
-          <FlowActions back={() => setStep(2)}><button className="button button-primary" onClick={nextAddress}>确认兑换内容 <ArrowRight /></button></FlowActions>
+          <FlowActions back={() => setStep(isAnnualCard ? 0 : 2)}><button className="button button-primary" onClick={nextAddress}>{isAnnualCard ? "确认激活年卡" : "确认兑换内容"} <ArrowRight /></button></FlowActions>
         </FlowSection>}
 
-        {step === 4 && voucher && <FlowSection eyebrow="05 · 确认兑换" title="核对无误，就按这里发出" intro="提交后将锁定卡券额度；补差金额会在后台接入后进入支付。">
-          <OrderLineList items={selectedItems} />
+        {step === 4 && voucher && <FlowSection eyebrow="05 · 确认兑换" title={isAnnualCard ? "确认以后，建立一整年的寄送计划" : "核对无误，就按这里发出"} intro={isAnnualCard ? "卡密只能激活一次，确认前请核对收货人和长期有效的收货地址。" : "提交后将锁定卡券额度；补差金额会进入支付。"}>
+          {isAnnualCard ? <div className="annual-plan-grid"><article><span>开始时间</span><strong>2027年1月</strong></article><article><span>寄送周期</span><strong>连续12个月</strong></article><article><span>每月内容</span><strong>1箱 × 30枚</strong></article></div> : <OrderLineList items={selectedItems} />}
           <div className="confirm-address"><MapPin /><div><strong>{address.receiver} · {address.phone}</strong><p>{address.province}{address.city}{address.district}{address.detail}</p></div><button onClick={() => setStep(3)}>修改</button></div>
           {topUpAmount > 0 && <div className="option-section"><h3>补差支付</h3><div className="option-grid"><OptionCard selected={payment === "wechat"} onClick={() => setPayment("wechat")} icon={<Wallet />} title="微信支付" note="兑换提交后唤起" /><OptionCard selected={payment === "alipay"} onClick={() => setPayment("alipay")} icon={<Wallet />} title="支付宝" note="兑换提交后唤起" /></div></div>}
-          <CheckoutSummary subtotal={subtotal} shipping={shipping} credit={credit} totalLabel={topUpAmount > 0 ? "需要补差" : "无需补差"} />
-          <FlowActions back={() => setStep(3)}><button className="button button-primary" disabled={loading} onClick={submit}>{loading ? "正在提交兑换…" : topUpAmount > 0 ? `确认兑换并补差 ${money(topUpAmount)}` : "确认兑换"}</button></FlowActions>
+          {!isAnnualCard && <CheckoutSummary subtotal={subtotal} shipping={shipping} credit={credit} totalLabel={topUpAmount > 0 ? "需要补差" : "无需补差"} />}
+          <FlowActions back={() => setStep(3)}><button className="button button-primary" disabled={loading} onClick={submit}>{loading ? "正在提交…" : isAnnualCard ? "确认激活年卡" : topUpAmount > 0 ? `确认兑换并补差 ${money(topUpAmount)}` : "确认兑换"}</button></FlowActions>
         </FlowSection>}
 
-        {step === 5 && redemption && <ResultSection icon={<Package weight="thin" />} title="兑换已经提交" id={redemption.id} note={topUpAmount > 0 ? "兑换单已生成，等待补差支付接入。支付完成后将按商品批次安排发出。" : "卡券额度已完成演示核销。接入后台后，这里会展示真实核销结果和预计发货批次。"} close={close} />}
+        {step === 5 && redemption && <ResultSection icon={<Package weight="thin" />} title={isAnnualCard ? "年卡已经激活" : "兑换已经提交"} id={redemption.orderNo || redemption.id} note={isAnnualCard ? "2027年1月至12月的12次寄送计划已经建立，可在农场后台逐月安排装箱和物流。" : topUpAmount > 0 ? "兑换单已生成，完成补差支付后将按商品批次安排发出。" : "卡券额度已经核销，兑换单已进入农场后台。"} close={close} />}
       </main>
     </div>
   );

@@ -1,0 +1,124 @@
+CREATE TABLE IF NOT EXISTS products (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  category_label TEXT NOT NULL,
+  price_cents INTEGER NOT NULL CHECK (price_cents >= 0),
+  inventory INTEGER NOT NULL DEFAULT 0 CHECK (inventory >= 0),
+  sales_status TEXT NOT NULL DEFAULT 'draft',
+  active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  data_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS inventory_batches (
+  id TEXT PRIMARY KEY,
+  product_id TEXT NOT NULL REFERENCES products(id),
+  batch_code TEXT NOT NULL UNIQUE,
+  sellable_quantity INTEGER NOT NULL DEFAULT 0,
+  reserved_quantity INTEGER NOT NULL DEFAULT 0,
+  sold_quantity INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'scheduled',
+  harvest_at TEXT,
+  ship_start_at TEXT,
+  ship_end_at TEXT,
+  notes TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id TEXT PRIMARY KEY,
+  order_no TEXT NOT NULL UNIQUE,
+  order_type TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  address_json TEXT NOT NULL,
+  items_json TEXT NOT NULL,
+  subtotal_cents INTEGER NOT NULL DEFAULT 0,
+  shipping_cents INTEGER NOT NULL DEFAULT 0,
+  credit_cents INTEGER NOT NULL DEFAULT 0,
+  total_cents INTEGER NOT NULL DEFAULT 0,
+  payment_method TEXT NOT NULL DEFAULT '',
+  payment_status TEXT NOT NULL DEFAULT 'pending',
+  fulfillment_status TEXT NOT NULL DEFAULT 'pending_review',
+  packing_plan_json TEXT NOT NULL DEFAULT '{}',
+  source TEXT NOT NULL DEFAULT 'web',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS vouchers (
+  id TEXT PRIMARY KEY,
+  code_hash TEXT NOT NULL UNIQUE,
+  code_hint TEXT NOT NULL,
+  voucher_type TEXT NOT NULL,
+  name TEXT NOT NULL,
+  face_value_cents INTEGER NOT NULL DEFAULT 0,
+  balance_cents INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'active',
+  expires_at TEXT,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  activated_at TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id TEXT PRIMARY KEY,
+  voucher_id TEXT NOT NULL UNIQUE REFERENCES vouchers(id),
+  order_id TEXT NOT NULL REFERENCES orders(id),
+  customer_name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  address_json TEXT NOT NULL,
+  starts_on TEXT NOT NULL,
+  months INTEGER NOT NULL DEFAULT 12,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS subscription_deliveries (
+  id TEXT PRIMARY KEY,
+  subscription_id TEXT NOT NULL REFERENCES subscriptions(id),
+  delivery_month TEXT NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  eggs_per_box INTEGER NOT NULL DEFAULT 30,
+  status TEXT NOT NULL DEFAULT 'scheduled',
+  tracking_no TEXT NOT NULL DEFAULT '',
+  shipped_at TEXT,
+  UNIQUE(subscription_id, delivery_month)
+);
+
+CREATE TABLE IF NOT EXISTS farm_logs (
+  id TEXT PRIMARY KEY,
+  log_date TEXT NOT NULL,
+  label TEXT NOT NULL,
+  season TEXT NOT NULL DEFAULT '',
+  summary TEXT NOT NULL DEFAULT '',
+  activities_json TEXT NOT NULL DEFAULT '[]',
+  published INTEGER NOT NULL DEFAULT 1 CHECK (published IN (0, 1)),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  actor TEXT NOT NULL,
+  action TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  detail_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_products_active_sort ON products(active, sort_order);
+CREATE INDEX IF NOT EXISTS idx_batches_product_status ON inventory_batches(product_id, status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_fulfillment ON orders(fulfillment_status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_vouchers_status_type ON vouchers(status, voucher_type);
+CREATE INDEX IF NOT EXISTS idx_farm_logs_published_date ON farm_logs(published, log_date DESC);
+CREATE INDEX IF NOT EXISTS idx_deliveries_month_status ON subscription_deliveries(delivery_month, status);
+
+PRAGMA optimize;

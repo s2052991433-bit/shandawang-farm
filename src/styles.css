@@ -117,7 +117,13 @@ img { display: block; max-width: 100%; }
 .product-page-image img.is-card-cover,
 .product-modal-image img.is-card-cover { padding: clamp(30px, 5vw, 72px); }
 .product-card:hover img { transform: scale(1.035); }
-.product-image-wrap span { position: absolute; left: 14px; top: 14px; padding: 7px 10px; background: rgba(250,247,238,.93); color: var(--green); font-size: 10px; letter-spacing: .07em; }
+.product-image-wrap .product-status { position: absolute; z-index: 4; left: 14px; top: 14px; padding: 7px 10px; background: rgba(250,247,238,.93); color: var(--green); font-size: 10px; letter-spacing: .07em; backdrop-filter: blur(8px); }
+.product-image-wrap.is-preorder img { filter: saturate(.86) contrast(.96); }
+.preorder-mask { position: absolute; z-index: 3; inset: 0; padding: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; background: linear-gradient(180deg, rgba(10,35,25,.18), rgba(10,35,25,.62)); transition: background 260ms ease; }
+.product-card:hover .preorder-mask { background: linear-gradient(180deg, rgba(10,35,25,.1), rgba(10,35,25,.54)); }
+.preorder-mask small { font-size: 10px; letter-spacing: .2em; opacity: .82; }
+.preorder-mask strong { margin: 8px 0 10px; font-family: "Noto Serif SC", serif; font-size: clamp(28px, 3vw, 44px); font-weight: 500; letter-spacing: .18em; }
+.preorder-mask em { max-width: 250px; font-style: normal; font-size: 11px; line-height: 1.7; letter-spacing: .06em; opacity: .9; }
 .product-info { padding: 19px 2px 0; display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
 .product-title { padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
 .product-info h3 { margin: 0; font-family: "Noto Serif SC", serif; font-size: 20px; font-weight: 600; letter-spacing: .05em; }
@@ -126,6 +132,7 @@ img { display: block; max-width: 100%; }
 .product-buy strong { color: #a94e27; font-size: 17px; }
 .product-buy button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: transparent; display: grid; place-items: center; cursor: pointer; }
 .product-buy button:hover { background: var(--green); color: white; }
+.product-buy button.is-preorder { border-style: dashed; color: #8b5b36; }
 
 .voucher-section { background: var(--green); color: white; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(60px, 9vw, 150px); align-items: center; }
 .voucher-copy h2 { margin: 0; font-family: "Noto Serif SC", serif; font-size: clamp(36px, 4vw, 58px); line-height: 1.4; letter-spacing: .05em; }
@@ -211,6 +218,7 @@ img { display: block; max-width: 100%; }
 .cart-line img { width: 78px; height: 78px; object-fit: cover; }
 .cart-line h3 { margin: 0; font-family: "Noto Serif SC", serif; font-size: 15px; }
 .cart-line p { margin: 4px 0 7px; color: var(--muted); font-size: 10px; }
+.cart-line .cart-preorder-label { display: block; margin: -1px 0 7px; color: #9a5a31; font-size: 9px; line-height: 1.55; }
 .cart-line strong { font-size: 13px; color: #a6512d; }
 .cart-total { margin-top: 26px; display: flex; justify-content: space-between; align-items: baseline; }
 .cart-total strong { font-size: 24px; font-family: "Noto Serif SC", serif; }
@@ -269,6 +277,7 @@ img { display: block; max-width: 100%; }
 .checkout-lines img { width: 92px; height: 82px; object-fit: cover; }
 .checkout-lines h3 { margin: 0; font-family: "Noto Serif SC", serif; font-size: 16px; }
 .checkout-lines p, .checkout-lines span { display: block; margin: 4px 0; color: var(--muted); font-size: 10px; }
+.checkout-lines .checkout-preorder-label { color: #9a5a31; line-height: 1.55; }
 .checkout-lines > article > strong { color: #a6512d; }
 .checkout-summary { width: min(420px, 100%); margin: 28px 0 0 auto; }
 .checkout-summary p { margin: 0; padding: 8px 0; display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
@@ -335,6 +344,18 @@ img { display: block; max-width: 100%; }
 .voucher-product p { margin: 0 0 12px; color: var(--muted); font-size: 10px; }
 .voucher-product > div > strong { color: #a6512d; }
 .voucher-product > .button, .voucher-product > .quantity-control { margin: 0 17px 18px; }
+.annual-redemption-summary { margin: 0 0 28px; padding: 28px; display: flex; align-items: center; gap: 22px; color: #f6efe4; background: #194b3a; }
+.annual-redemption-summary > svg { width: 48px; height: 48px; flex: 0 0 auto; }
+.annual-redemption-summary span, .annual-redemption-summary strong { display: block; }
+.annual-redemption-summary span { color: rgba(255,255,255,.58); font-size: 10px; letter-spacing: .12em; }
+.annual-redemption-summary strong { margin-top: 7px; font-family: "Noto Serif SC", serif; font-size: 25px; letter-spacing: .06em; }
+.annual-redemption-summary p { margin: 8px 0 0; color: rgba(255,255,255,.7); font-size: 12px; line-height: 1.8; }
+.annual-plan-grid { margin-bottom: 24px; display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); }
+.annual-plan-grid article { padding: 22px; border-right: 1px solid var(--line); }
+.annual-plan-grid article:last-child { border-right: 0; }
+.annual-plan-grid span, .annual-plan-grid strong { display: block; }
+.annual-plan-grid span { color: var(--muted); font-size: 9px; letter-spacing: .08em; }
+.annual-plan-grid strong { margin-top: 7px; font-family: "Noto Serif SC", serif; font-size: 20px; }
 .add-on-list { border-top: 1px solid var(--line); }
 .add-on-list article { padding: 16px 0; display: grid; grid-template-columns: 72px 1fr auto; gap: 15px; align-items: center; border-bottom: 1px solid var(--line); }
 .add-on-list img { width: 72px; height: 66px; object-fit: cover; }
@@ -485,6 +506,9 @@ img { display: block; max-width: 100%; }
   .voucher-balance > div:nth-child(3) { grid-column: 1 / -1; padding-top: 14px; border-top: 1px solid var(--line); }
   .voucher-products { display: flex; gap: 15px; overflow-x: auto; scroll-snap-type: x mandatory; margin-right: -22px; padding-right: 22px; scrollbar-width: none; }
   .voucher-product { flex: 0 0 82%; scroll-snap-align: start; }
+  .annual-plan-grid { grid-template-columns: 1fr; }
+  .annual-plan-grid article { border-right: 0; border-bottom: 1px solid var(--line); }
+  .annual-plan-grid article:last-child { border-bottom: 0; }
   .add-on-list article { grid-template-columns: 58px 1fr; }
   .add-on-list img { width: 58px; height: 58px; }
   .add-on-list .quantity-control { grid-column: 2; }
@@ -547,6 +571,11 @@ img { display: block; max-width: 100%; }
 .product-page-image { min-height: 690px; position: relative; overflow: hidden; background: #d7d1c3; }
 .product-page-image img { width: 100%; height: 100%; object-fit: cover; }
 .product-page-image > span { position: absolute; left: 28px; top: 28px; padding: 9px 13px; background: rgba(250,247,239,.9); font-size: 10px; backdrop-filter: blur(8px); }
+.product-page-image.is-preorder img { filter: saturate(.88) contrast(.96); }
+.product-page-preorder { position: absolute; inset: 0; padding: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; background: linear-gradient(180deg, rgba(10,35,25,.12), rgba(10,35,25,.58)); }
+.product-page-preorder small { font-size: 11px; letter-spacing: .22em; opacity: .82; }
+.product-page-preorder strong { margin: 10px 0 13px; font-family: "Noto Serif SC", serif; font-size: clamp(48px, 6vw, 80px); font-weight: 500; letter-spacing: .18em; }
+.product-page-preorder em { max-width: 340px; font-style: normal; font-size: 13px; line-height: 1.8; letter-spacing: .08em; }
 .product-page-copy { padding: clamp(50px, 6vw, 94px); display: flex; flex-direction: column; justify-content: center; background: var(--paper); }
 .product-page-copy h1 { margin: 0; font-family: "Noto Serif SC", serif; font-size: clamp(48px, 5vw, 76px); line-height: 1.25; font-weight: 600; }
 .product-lead { margin: 24px 0 30px; color: var(--muted); line-height: 2; font-size: 14px; }
@@ -558,6 +587,8 @@ img { display: block; max-width: 100%; }
 .product-page-buy small, .product-page-buy strong { display: block; }
 .product-page-buy small { margin-bottom: 5px; color: var(--muted); font-size: 11px; }
 .product-page-buy strong { color: #a6512d; font-family: "Noto Serif SC", serif; font-size: 30px; }
+.preorder-explainer { margin: 0 0 18px; padding: 13px 15px; display: flex; align-items: flex-start; gap: 9px; background: rgba(154,90,49,.08); color: #76513a; font-size: 11px; line-height: 1.65; }
+.preorder-explainer svg { width: 16px; height: 16px; flex: 0 0 auto; margin-top: 1px; }
 .product-story-chapter { min-height: 720px; display: grid; grid-template-columns: 1fr 1fr; background: #e9e1d3; }
 .product-story-chapter > div:first-child { min-height: 720px; overflow: hidden; }
 .product-story-chapter img { width: 100%; height: 100%; object-fit: cover; }

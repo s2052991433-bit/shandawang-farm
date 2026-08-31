@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "shandawang-farm",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-08-31",
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "shandawang-farm-production",
+      "database_id": "5dea0537-29d6-4ffd-996d-cc55fcef1a8a"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
