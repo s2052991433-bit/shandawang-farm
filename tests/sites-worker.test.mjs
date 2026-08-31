@@ -29,6 +29,15 @@ function memoryD1() {
   };
 }
 
+test("redirects the root domain to the single www canonical address", async () => {
+  const response = await worker.fetch(new Request("http://shandawangfarm.com/shop?season=summer"), {
+    ASSETS: { fetch: async () => new Response("unused") },
+  });
+
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get("location"), "https://www.shandawangfarm.com/shop?season=summer");
+});
+
 test("serves existing static assets without a fallback", async () => {
   const calls = [];
   const response = await worker.fetch(new Request("https://example.test/assets/app.js"), {

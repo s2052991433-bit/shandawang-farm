@@ -777,6 +777,11 @@ async function handleApi(request, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.hostname === "shandawangfarm.com") {
+      url.protocol = "https:";
+      url.hostname = "www.shandawangfarm.com";
+      return Response.redirect(url.toString(), 301);
+    }
     if (url.pathname.startsWith("/api/")) return handleApi(request, env);
     const response = await env.ASSETS.fetch(request);
     const acceptsHtml = request.headers.get("accept") && request.headers.get("accept").includes("text/html");
