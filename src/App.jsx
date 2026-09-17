@@ -22,6 +22,7 @@ import {
 } from "@phosphor-icons/react";
 import { storeApi } from "./services/storeApi";
 import { AdminApp } from "./admin/AdminApp";
+import { SEASONAL_PRODUCT_IMAGE_BY_ID, SUPPLEMENTAL_PRODUCTS } from "../shared/seasonal-catalog.js";
 
 const seasons = [
   ["立秋", "8月7日", "山风开始转凉"],
@@ -33,7 +34,7 @@ const seasons = [
 const fallbackProducts = [
   {
     id: "bayberries",
-    name: "山里红杨梅",
+    name: "东魁杨梅",
     detail: "当日清晨采摘 · 2.5kg",
     spec: "2.5kg 保鲜装",
     price: 168,
@@ -255,22 +256,22 @@ const fallbackProducts = [
 
 const seasonalProducts = [
   {
-    id: "spring-bamboo-shoots", name: "山林春笋", category: "vegetables", categoryLabel: "春日时蔬", price: 58,
+    id: "spring-bamboo-shoots", name: "奉化雷笋", category: "vegetables", categoryLabel: "春日时蔬", price: 58,
     status: "春季预售", detail: "清晨现挖 · 2.5kg", spec: "2.5kg 透气装", image: "/assets/season-spring-harvest.jpg",
-    origin: "宁波山林竹园 · 农场自产", delivery: "春笋破土后按成熟批次发出", storage: "收到后冷藏，建议3天内食用",
+    origin: "奉化竹林 · 宁波精选", delivery: "雷笋破土后按成熟批次发出", storage: "收到后冷藏，建议3天内食用",
     description: "不提前定死采挖日。笋尖破土、肉质仍嫩时才从竹园带回，完成去泥与透气装箱。", batch: "2027 清明前后批次",
     harvest: "预计3—4月，跟随山间温度分批采挖", sceneImage: "/assets/season-spring-harvest.jpg", sceneTitle: "笋尖冒出土面，春天才真正开始",
     sceneBody: "竹园湿度、坡向与连续晴雨都会改变春笋的生长速度。预售订单先排队，成熟以后再通知具体发出时间。",
     season: "spring", seasonLabel: "春", preorderNote: "预计3—4月成熟后分批发出",
   },
   {
-    id: "spring-strawberries", name: "春日露水草莓", category: "farm-grown", categoryLabel: "春日鲜果", price: 88,
-    status: "春季预售", detail: "自然转红 · 2盒", spec: "2盒防压保鲜装", image: "/assets/season-spring-harvest.jpg",
-    origin: "宁波山间草莓棚 · 当地精选", delivery: "达到甜度后清晨采摘、当天发出", storage: "收到后冷藏，建议当天食用",
-    description: "以香气、转色和果肉硬度决定采摘，不为了赶订单提前摘下还没熟的果子。", batch: "2027 春日首批",
-    harvest: "预计2—4月，成熟一批采一批", sceneImage: "/assets/season-spring-harvest.jpg", sceneTitle: "颜色红透，香气也到了",
-    sceneBody: "草莓娇嫩，采后直接进入小盒与防压层。预售让每天采下的数量与当天能发出的数量保持一致。",
-    season: "spring", seasonLabel: "春", preorderNote: "预计2—4月成熟后分批发出",
+    id: "spring-xiangshan-loquat", name: "象山白枇杷", category: "ningbo-select", categoryLabel: "春日鲜果", price: 98,
+    status: "春季预售", detail: "薄皮清甜 · 4盒", spec: "4盒果托防压装", image: "/assets/season-spring-harvest.jpg",
+    origin: "象山枇杷园 · 宁波精选", delivery: "果面转黄、甜度达到后清晨采摘并发出", storage: "收到后冷藏，建议2天内食用",
+    description: "白枇杷果肉细嫩、运输怕压，等果色与甜度稳定后逐串剪下，再用独立果托装箱。", batch: "2027 象山白枇杷批次",
+    harvest: "预计4—5月，成熟一批采一批", sceneImage: "/assets/season-spring-harvest.jpg", sceneTitle: "果面慢慢转黄，春末的甜味就到了",
+    sceneBody: "同一树上的枇杷也会先后成熟。预售订单跟着果色、香气和天气排批次，不提前采青果。",
+    season: "spring", seasonLabel: "春", saleMonths: [4, 5], preorderNote: "预计4—5月成熟后分批发出",
   },
   {
     id: "autumn-persimmons", name: "山坡甜柿", category: "farm-grown", categoryLabel: "秋日鲜果", price: 76,
@@ -337,7 +338,7 @@ const productSaleMonthsById = {
   "fresh-edamame": [8, 9, 10],
   "baby-bok-choy": [2, 3, 4, 9, 10, 11],
   "spring-bamboo-shoots": [3, 4],
-  "spring-strawberries": [2, 3, 4],
+  "spring-xiangshan-loquat": [4, 5],
   "autumn-persimmons": [10, 11],
   "autumn-sweet-potatoes": [10, 11],
   "winter-tangerines": [11, 12],
@@ -357,6 +358,8 @@ function normalizeProduct(product) {
   const saleMonths = product.saleMonths || productSaleMonthsById[product.id] || defaultSaleMonthsBySeason[season] || [];
   return {
     ...product,
+    image: SEASONAL_PRODUCT_IMAGE_BY_ID[product.id] || product.image,
+    sceneImage: SEASONAL_PRODUCT_IMAGE_BY_ID[product.id] || product.sceneImage || product.image,
     season,
     seasonLabel: product.seasonLabel || seasonLabels[season],
     saleMonths,
@@ -365,7 +368,7 @@ function normalizeProduct(product) {
   };
 }
 
-const allFallbackProducts = [...fallbackProducts, ...seasonalProducts]
+const allFallbackProducts = [...fallbackProducts, ...seasonalProducts, ...SUPPLEMENTAL_PRODUCTS]
   .map(normalizeProduct)
   .sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999));
 
@@ -818,7 +821,9 @@ function HomeContent({ addToCart, navigate, liveFarmLogs, products }) {
 
 function ShopContent({ addToCart, navigate, products }) {
   const [filter, setFilter] = useState("all");
-  const visibleProducts = filter === "all" ? products : products.filter((product) => product.season === filter);
+  const visibleProducts = filter === "all"
+    ? products
+    : products.filter((product) => filter === "new-year-goods" ? product.category === "new-year-goods" : product.season === filter);
   return (
     <section id="shop-products" className="shop-page section-shell">
       <div className="shop-page-heading">
@@ -826,7 +831,7 @@ function ShopContent({ addToCart, navigate, products }) {
         <p>系统会按真实可售月份自动切换：眼下成熟的商品可直接购买，下一季的商品显示预售；全年禽蛋与年卡始终可选。</p>
       </div>
       <div className="shop-filters" role="group" aria-label="按四季筛选商品">
-        {[["all", "全部四季"], ["spring", "春日新鲜"], ["summer", "盛夏果香"], ["autumn", "秋收风味"], ["winter", "冬藏年味"], ["annual", "全年禽蛋与年卡"]].map(([value, label]) => <button className={filter === value ? "is-active" : ""} key={value} onClick={() => setFilter(value)}>{label}</button>)}
+        {[["all", "全部四季"], ["spring", "春日新鲜"], ["summer", "盛夏果香"], ["autumn", "秋收风味"], ["winter", "冬藏年味"], ["new-year-goods", "宁波年货"], ["annual", "全年禽蛋与年卡"]].map(([value, label]) => <button className={filter === value ? "is-active" : ""} key={value} onClick={() => setFilter(value)}>{label}</button>)}
       </div>
       <ProductGrid items={visibleProducts} addToCart={addToCart} navigate={navigate} />
       <aside className="shop-note">

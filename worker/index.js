@@ -1,3 +1,5 @@
+import { SEASONAL_PRODUCT_IMAGE_BY_ID, SUPPLEMENTAL_PRODUCTS } from "../shared/seasonal-catalog.js";
+
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" };
 const ADMIN_SESSION_COOKIE = "sdw_admin_session";
 const ADMIN_SESSION_SECONDS = 60 * 60 * 24 * 7;
@@ -11,7 +13,7 @@ const LOGIN_FAILURE_LIMIT = 5;
 
 const DEFAULT_PRODUCTS = [
   {
-    id: "bayberries", name: "山里红杨梅", category: "farm-grown", categoryLabel: "农场自产", price: 168, inventory: 36,
+    id: "bayberries", name: "东魁杨梅", category: "farm-grown", categoryLabel: "农场自产", price: 168, inventory: 36,
     status: "本季最后一批", detail: "当日清晨采摘 · 2.5kg", spec: "2.5kg 保鲜装", image: "/assets/bayberries.webp",
     origin: "宁波山间 · 农场自产", delivery: "采摘后24小时内冷链发出", storage: "收到后冷藏，建议2天内食用",
     description: "成熟一批采一批，不催熟、不久放。酸甜度会随当天山间天气略有变化。", batch: "夏末最后一批",
@@ -113,22 +115,22 @@ const DEFAULT_PRODUCTS = [
 
 DEFAULT_PRODUCTS.push(
   {
-    id: "spring-bamboo-shoots", name: "山林春笋", category: "vegetables", categoryLabel: "春日时蔬", price: 58, inventory: 80,
+    id: "spring-bamboo-shoots", name: "奉化雷笋", category: "vegetables", categoryLabel: "春日时蔬", price: 58, inventory: 80,
     status: "春季预售", detail: "清晨现挖 · 2.5kg", spec: "2.5kg 透气装", image: "/assets/season-spring-harvest.jpg",
-    origin: "宁波山林竹园 · 农场自产", delivery: "春笋破土后按成熟批次发出", storage: "收到后冷藏，建议3天内食用",
+    origin: "奉化竹林 · 宁波精选", delivery: "雷笋破土后按成熟批次发出", storage: "收到后冷藏，建议3天内食用",
     description: "不提前定死采挖日。笋尖破土、肉质仍嫩时才从竹园带回，完成去泥与透气装箱。", batch: "2027 清明前后批次",
     harvest: "预计3—4月，跟随山间温度分批采挖", sceneImage: "/assets/season-spring-harvest.jpg", sceneTitle: "笋尖冒出土面，春天才真正开始",
     sceneBody: "竹园湿度、坡向与连续晴雨都会改变春笋的生长速度。预售订单先排队，成熟以后再通知具体发出时间。",
     season: "spring", seasonLabel: "春", preorderNote: "预计3—4月成熟后分批发出", fulfillment: { temperature: "ambient", packageSystem: "vegetable", boxSize: "M", fragile: "medium", compatibleWith: ["vegetable"] }, sortOrder: 12,
   },
   {
-    id: "spring-strawberries", name: "春日露水草莓", category: "farm-grown", categoryLabel: "春日鲜果", price: 88, inventory: 60,
-    status: "春季预售", detail: "自然转红 · 2盒", spec: "2盒防压保鲜装", image: "/assets/season-spring-harvest.jpg",
-    origin: "宁波山间草莓棚 · 当地精选", delivery: "达到甜度后清晨采摘、当天发出", storage: "收到后冷藏，建议当天食用",
-    description: "以香气、转色和果肉硬度决定采摘，不为了赶订单提前摘下还没熟的果子。", batch: "2027 春日首批",
-    harvest: "预计2—4月，成熟一批采一批", sceneImage: "/assets/season-spring-harvest.jpg", sceneTitle: "颜色红透，香气也到了",
-    sceneBody: "草莓娇嫩，采后直接进入小盒与防压层。预售让每天采下的数量与当天能发出的数量保持一致。",
-    season: "spring", seasonLabel: "春", preorderNote: "预计2—4月成熟后分批发出", fulfillment: { temperature: "chilled", packageSystem: "fruit", boxSize: "S", fragile: "high", compatibleWith: ["fruit"] }, sortOrder: 14,
+    id: "spring-xiangshan-loquat", name: "象山白枇杷", category: "ningbo-select", categoryLabel: "春日鲜果", price: 98, inventory: 60,
+    status: "春季预售", detail: "薄皮清甜 · 4盒", spec: "4盒果托防压装", image: "/assets/season-spring-harvest.jpg",
+    origin: "象山枇杷园 · 宁波精选", delivery: "果面转黄、甜度达到后清晨采摘并发出", storage: "收到后冷藏，建议2天内食用",
+    description: "白枇杷果肉细嫩、运输怕压，等果色与甜度稳定后逐串剪下，再用独立果托装箱。", batch: "2027 象山白枇杷批次",
+    harvest: "预计4—5月，成熟一批采一批", sceneImage: "/assets/season-spring-harvest.jpg", sceneTitle: "果面慢慢转黄，春末的甜味就到了",
+    sceneBody: "同一树上的枇杷也会先后成熟。预售订单跟着果色、香气和天气排批次，不提前采青果。",
+    season: "spring", seasonLabel: "春", saleMonths: [4, 5], preorderNote: "预计4—5月成熟后分批发出", fulfillment: { temperature: "chilled", packageSystem: "fruit", boxSize: "S", fragile: "high", compatibleWith: ["fruit"] }, sortOrder: 14,
   },
   {
     id: "autumn-persimmons", name: "山坡甜柿", category: "farm-grown", categoryLabel: "秋日鲜果", price: 76, inventory: 72,
@@ -168,6 +170,8 @@ DEFAULT_PRODUCTS.push(
   }
 );
 
+DEFAULT_PRODUCTS.push(...SUPPLEMENTAL_PRODUCTS);
+
 const PRODUCT_SEASON_BY_ID = {
   "baby-bok-choy": "spring",
   bayberries: "summer", peaches: "summer", "weekly-vegetable-basket": "summer", "farm-tomatoes": "summer", "farm-cucumbers": "summer", "purple-eggplants": "summer",
@@ -183,7 +187,7 @@ const DEFAULT_SALE_MONTHS_BY_SEASON = {
 };
 const PRODUCT_SALE_MONTHS_BY_ID = {
   bayberries: [6, 7], peaches: [7, 8], "weekly-vegetable-basket": [5, 6, 7, 8], "farm-tomatoes": [5, 6, 7, 8], "farm-cucumbers": [5, 6, 7, 8], "purple-eggplants": [6, 7, 8],
-  "fresh-edamame": [8, 9, 10], "baby-bok-choy": [2, 3, 4, 9, 10, 11], "spring-bamboo-shoots": [3, 4], "spring-strawberries": [2, 3, 4],
+  "fresh-edamame": [8, 9, 10], "baby-bok-choy": [2, 3, 4, 9, 10, 11], "spring-bamboo-shoots": [3, 4], "spring-xiangshan-loquat": [4, 5],
   "autumn-persimmons": [10, 11], "autumn-sweet-potatoes": [10, 11], "winter-tangerines": [11, 12], "winter-greens": [12, 1, 2], "ningbo-rice-cakes": [11, 12, 1, 2],
 };
 
@@ -209,6 +213,8 @@ DEFAULT_PRODUCTS.forEach(function (product) {
   product.seasonLabel = product.seasonLabel || PRODUCT_SEASON_LABELS[season];
   product.saleMonths = productSaleMonths(product);
   product.saleMode = productSaleMode(product);
+  product.image = SEASONAL_PRODUCT_IMAGE_BY_ID[product.id] || product.image;
+  product.sceneImage = SEASONAL_PRODUCT_IMAGE_BY_ID[product.id] || product.sceneImage || product.image;
   product.preorderNote = product.preorderNote || (product.id === "eggs" ? "全年按当期鸡舍产量，每周分批发出" : PRODUCT_SEASON_LABELS[season] + "季成熟后按批次发出");
 });
 
@@ -267,6 +273,8 @@ function publicProduct(row) {
   product.seasonLabel = product.seasonLabel || PRODUCT_SEASON_LABELS[product.season];
   product.saleMonths = productSaleMonths(product);
   product.saleMode = productSaleMode(product);
+  product.image = SEASONAL_PRODUCT_IMAGE_BY_ID[product.id] || product.image;
+  product.sceneImage = SEASONAL_PRODUCT_IMAGE_BY_ID[product.id] || product.sceneImage || product.image;
   return product;
 }
 
@@ -304,6 +312,8 @@ async function ensureDatabase(env) {
         delete flexible.id; delete flexible.name; delete flexible.category; delete flexible.categoryLabel; delete flexible.price; delete flexible.inventory; delete flexible.status; delete flexible.sortOrder;
         return env.DB.prepare("INSERT OR IGNORE INTO products (id, name, category, category_label, price_cents, inventory, sales_status, active, sort_order, data_json) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)").bind(product.id, product.name, product.category, product.categoryLabel, cents(product.price), product.inventory, product.status, product.sortOrder, JSON.stringify(flexible));
       }));
+      await env.DB.prepare("DELETE FROM products WHERE id = 'spring-strawberries' AND name = '春日露水草莓'").run();
+      await env.DB.prepare("UPDATE products SET name = '东魁杨梅', updated_at = CURRENT_TIMESTAMP WHERE id = 'bayberries' AND name = '山里红杨梅'").run();
       const logCount = await env.DB.prepare("SELECT COUNT(*) AS count FROM farm_logs").first();
       if (!Number(logCount && logCount.count)) {
         await env.DB.batch(DEFAULT_FARM_LOGS.map(function (log) {

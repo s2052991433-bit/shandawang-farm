@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { access } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { access, readFile } from "node:fs/promises";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import worker, { __test } from "../worker/index.js";
@@ -134,17 +135,40 @@ test("opens each product in its real selling months and keeps other seasons in p
   const annualCard = products.find((product) => product.id === "egg-annual-card");
   const product = (id) => products.find((item) => item.id === id);
 
-  assert.equal(products.length, 17);
+  assert.equal(products.length, 82);
+  assert.equal(new Set(products.map((item) => item.id)).size, 82);
+  assert.equal(products.filter((item) => item.season === "spring").length, 20);
+  assert.equal(products.filter((item) => item.season === "summer").length, 20);
+  assert.equal(products.filter((item) => item.season === "autumn").length, 20);
+  assert.equal(products.filter((item) => item.season === "winter").length, 20);
+  assert.equal(products.filter((item) => item.season === "annual").length, 2);
   assert.equal(annualCard.saleMode, "available");
   assert.equal(__test.productSaleMode(product("peaches"), 8), "available");
   assert.equal(__test.productSaleMode(product("bayberries"), 8), "preorder");
   assert.equal(__test.productSaleMode(product("spring-bamboo-shoots"), 3), "available");
   assert.equal(__test.productSaleMode(product("spring-bamboo-shoots"), 8), "preorder");
+  assert.equal(__test.productSaleMode(product("spring-xiangshan-loquat"), 5), "available");
   assert.equal(__test.productSaleMode(product("autumn-persimmons"), 10), "available");
   assert.equal(__test.productSaleMode(product("winter-tangerines"), 12), "available");
   assert.equal(__test.productSaleMode(product("eggs"), 8), "available");
   assert.deepEqual(new Set(products.map((product) => product.season)), new Set(["spring", "summer", "autumn", "winter", "annual"]));
-  assert.ok(["spring-bamboo-shoots", "peaches", "autumn-persimmons", "ningbo-rice-cakes"].every((id) => products.some((product) => product.id === id)));
+  assert.ok(["spring-bamboo-shoots", "spring-xiangshan-loquat", "peaches", "autumn-persimmons", "ningbo-rice-cakes", "winter-tangyuan"].every((id) => products.some((product) => product.id === id)));
+  assert.equal(product("bayberries").name, "东魁杨梅");
+  assert.equal(product("spring-strawberries"), undefined);
+  assert.ok(products.filter((item) => item.category === "new-year-goods").length >= 8);
+  assert.equal(new Set(products.filter((item) => item.season !== "annual").map((item) => item.image)).size, 80);
+});
+
+test("ships a real and distinct image file for every seasonal product", async () => {
+  const seasonalProducts = __test.DEFAULT_PRODUCTS.filter((product) => product.season !== "annual");
+  const hashes = await Promise.all(seasonalProducts.map(async (product) => {
+    const file = new URL(`../public${product.image}`, import.meta.url);
+    await access(file);
+    return createHash("sha256").update(await readFile(file)).digest("hex");
+  }));
+
+  assert.equal(hashes.length, 80);
+  assert.equal(new Set(hashes).size, 80);
 });
 
 test("uses an HttpOnly secure same-site administrator session cookie", () => {
