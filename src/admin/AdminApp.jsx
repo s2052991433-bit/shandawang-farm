@@ -1,3 +1,4 @@
+import { parseCardText } from "../../shared/voucher-import.mjs";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowClockwise,
@@ -192,6 +193,28 @@ function VoucherGenerator({ close, created, notify }) {
   </form></aside></div>;
 }
 
+function VoucherImporter({ close, imported }) {
+  const [text, setText] = useState("");
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState("");
+  let cards = []; let problem = "";
+  try { cards = parseCardText(text); } catch (e) { problem = e.message; }
+  const submit = async (event) => {
+    event.preventDefault(); setWorking(true); setError("");
+    try { const result = await adminApi.importVouchers(cards); setText(""); await imported(result); }
+    catch (e) { setError(e.message); }
+    finally { setWorking(false); }
+  };
+  return <div className="admin-drawer-wrap"><button className="admin-drawer-backdrop" disabled={working} onClick={close} aria-label="关闭" /><aside className="admin-drawer admin-voucher-drawer"><header><div><p>保留原卡号与密码</p><h2>导入鸡蛋年卡</h2></div><button disabled={working} onClick={close} aria-label="关闭导入"><X /></button></header><form onSubmit={submit}>
+    <div className="annual-rule-note"><Egg /><div><strong>2027年鸡蛋年卡 · ¥798</strong><span>1月至12月，每月30枚，共360枚。激活后生成12次配送计划。</span></div></div>
+    <label><span>从Excel复制“卡号、密码”两列粘贴到这里</span><textarea rows={10} autoComplete="off" spellCheck={false} disabled={working} value={text} onChange={(event) => { setText(event.target.value); setError(""); }} placeholder={"卡号\t密码"} /></label>
+    <label><span>或选择两列CSV文件</span><input type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" disabled={working} onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; if (file.size > 40000) { setError("文件过大，每批最多100张卡"); return; } try { setText(await file.text()); setError(""); } catch { setError("文件无法读取，请重新选择"); } }} /></label>
+    <p>{text ? problem || `已检查${cards.length}张卡，原卡号和密码将保持不变。` : "支持表头，每批最多100张。相同卡券重复导入会跳过；任何冲突都不会覆盖已有数据。"}</p>
+    {error && <p className="form-error" role="alert">{error}</p>}
+    <footer><button type="button" className="admin-secondary" disabled={working} onClick={close}>取消</button><button className="admin-primary" disabled={working || !cards.length}>{working ? "正在导入…" : `导入${cards.length || ""}张年卡`}</button></footer>
+  </form></aside></div>;
+}
+
 function downloadCodes(batch) {
   const rows = ["序号,卡密,类型,名称", ...batch.codes.map((code, index) => `${index + 1},${code},${batch.type},${batch.name}`)];
   const blob = new Blob(["\ufeff" + rows.join("\n")], { type: "text/csv;charset=utf-8" });
@@ -202,12 +225,14 @@ function downloadCodes(batch) {
 
 function Vouchers({ vouchers, setVouchers, notify, refresh }) {
   const [generator, setGenerator] = useState(false);
+  const [importer, setImporter] = useState(false);
   const [batch, setBatch] = useState(null);
   const created = async (result) => { setBatch(result); setGenerator(false); await refresh(); };
   return <>
-    <SectionHead kicker="卡券与卡密" title="实体卡、兑换和核销都在这里" description="卡密只以加密结果保存；完整卡密只在生成当次显示。" action={<button className="admin-primary" onClick={() => setGenerator(true)}><Plus /> 生成卡密</button>} />
+    <SectionHead kicker="卡券与卡密" title="实体卡、兑换和核销都在这里" description="卡密只以加密结果保存；完整卡密只在生成当次显示。" action={<div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button className="admin-secondary" onClick={() => setImporter(true)}>导入已有年卡</button><button className="admin-primary" onClick={() => setGenerator(true)}><Plus /> 生成卡密</button></div>} />
     {batch && <section className="admin-code-batch"><div><Key weight="thin" /><span><strong>{batch.count}张卡密已经生成</strong><small>{batch.warning}</small></span></div><button className="admin-primary" onClick={() => downloadCodes(batch)}><DownloadSimple /> 下载卡密表</button></section>}
-    <section className="admin-table-card">{vouchers.length ? <div className="admin-table admin-voucher-table"><div className="admin-table-head"><span>卡券</span><span>卡密尾号</span><span>面值</span><span>状态</span><span>有效期</span></div>{vouchers.map((voucher) => <div className="admin-table-row" key={voucher.id}><span><strong>{voucher.name}</strong><small>{voucher.type === "annual_card" ? "鸡蛋年卡" : "余额礼卡"}</small></span><span>•••• {voucher.codeHint}</span><span>{money(voucher.value)}</span><StatusPill value={voucher.status} labels={{ active: "可使用", activated: "已激活", used: "已用完", disabled: "已停用" }} /><span>{voucher.expiresAt || "长期有效"}</span></div>)}</div> : <EmptyState icon={Ticket} title="还没有生成卡密" text="点击右上角“生成卡密”，可以一次生成100张鸡蛋年卡。" />}</section>
+    <section className="admin-table-card">{vouchers.length ? <div className="admin-table admin-voucher-table"><div className="admin-table-head"><span>卡券</span><span>卡密尾号</span><span>面值</span><span>状态</span><span>有效期</span></div>{vouchers.map((voucher) => <div className="admin-table-row" key={voucher.id}><span><strong>{voucher.name}</strong><small>{voucher.cardNumber ? `卡号 ${voucher.cardNumber}` : voucher.type === "annual_card" ? "鸡蛋年卡" : "余额礼卡"}</small></span><span>•••• {voucher.codeHint}</span><span>{money(voucher.value)}</span><StatusPill value={voucher.status} labels={{ active: "可使用", activated: "已激活", used: "已用完", disabled: "已停用" }} /><span>{voucher.expiresAt || "长期有效"}</span></div>)}</div> : <EmptyState icon={Ticket} title="还没有卡券" text="已有实体卡请选择“导入已有年卡”，保留原卡号和密码。" />}</section>
+    {importer && <VoucherImporter close={() => setImporter(false)} imported={async (result) => { setImporter(false); notify(`已导入${result.count}张，跳过${result.skipped}张已有卡券`); await refresh(); }} />}
     {generator && <VoucherGenerator close={() => setGenerator(false)} created={created} notify={notify} />}
   </>;
 }

@@ -101,9 +101,9 @@ export const storeApi = {
     }
   },
 
-  async validateVoucher(rawCode) {
+  async validateVoucher(rawCode, cardNumber) {
     try {
-      return await request("/api/vouchers/validate", { method: "POST", body: JSON.stringify({ code: rawCode }) });
+      return await request("/api/vouchers/validate", { method: "POST", body: JSON.stringify({ code: rawCode, cardNumber }) });
     } catch (error) {
       if (!isLocalPreview()) throw error;
       await wait();
