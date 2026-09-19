@@ -115,6 +115,7 @@ export const adminApi = {
   },
 
   vouchers() { return withFallback(() => request("/api/admin/vouchers"), () => ({ vouchers: demoState().vouchers })); },
+  importVouchers(cards) { return request("/api/admin/vouchers/import", { method: "POST", body: JSON.stringify({ cards }) }); },
   generateVouchers(input) {
     return withFallback(() => request("/api/admin/vouchers", { method: "POST", body: JSON.stringify(input) }), () => {
       const state = demoState();

@@ -24,8 +24,12 @@ function memoryD1() {
     prepare,
     async batch(statements) {
       const results = [];
-      for (const statement of statements) results.push(await statement.run());
-      return results;
+      database.exec("BEGIN");
+      try {
+        for (const statement of statements) results.push(await statement.run());
+        database.exec("COMMIT");
+        return results;
+      } catch (error) { database.exec("ROLLBACK"); throw error; }
     },
   };
 }
@@ -255,4 +259,52 @@ test("emits the files required by Sites packaging", async () => {
   await access(new URL("../dist/.openai/drizzle/0001_admin_backend.sql", import.meta.url));
   await access(new URL("../dist/.openai/drizzle/0002_catalog_expansion.sql", import.meta.url));
   await access(new URL("../dist/.openai/drizzle/0003_admin_identity.sql", import.meta.url));
+});
+
+test("imports printed annual cards atomically, preserves leading zeroes, and activates twelve deliveries once", async () => {
+  const { default: worker } = await import("../worker/index.js?annual-import-test");
+  const env = { DB: memoryD1(), ADMIN_ACCESS_KEY: "ImportTestSetup2027" };
+  const call = (path, body, cookie = "") => worker.fetch(new Request(`https://example.test${path}`, { method: "POST", headers: { "content-type": "application/json", origin: "https://example.test", cookie }, body: JSON.stringify(body) }), env);
+  const registered = await call("/api/admin/auth/register", { displayName: "测试农场主", phone: "13800138000", password: "TestOwner2027", setupKey: env.ADMIN_ACCESS_KEY });
+  const cookie = registered.headers.get("set-cookie").split(";")[0];
+  const cards = [{ cardNumber: "000001", password: "0123456" }, { cardNumber: "000002", password: "0765432" }];
+  assert.equal((await call("/api/admin/vouchers/import", { cards })).status, 401);
+  const imported = await call("/api/admin/vouchers/import", { cards }, cookie);
+  assert.equal(imported.status, 201);
+  assert.equal((await imported.json()).count, 2);
+  const repeated = await (await call("/api/admin/vouchers/import", { cards }, cookie)).json();
+  assert.equal(repeated.count, 0); assert.equal(repeated.skipped, 2);
+  const conflict = await call("/api/admin/vouchers/import", { cards: [{ cardNumber: "000003", password: "1111111" }, { cardNumber: "000001", password: "2222222" }] }, cookie);
+  assert.equal(conflict.status, 409);
+  assert.equal((await env.DB.prepare("SELECT COUNT(*) AS n FROM vouchers").first()).n, 2);
+  assert.equal((await call("/api/vouchers/validate", { code: "0123456" })).status, 404);
+  assert.equal((await call("/api/vouchers/validate", { code: "0123456", cardNumber: "000002" })).status, 404);
+  const checked = await (await call("/api/vouchers/validate", { code: "0123456", cardNumber: "000001" })).json();
+  assert.equal(checked.type, "annual_card"); assert.equal(checked.value, 798);
+  assert.deepEqual(checked.deliveryPlan, { startsOn: "2027-01-01", months: 12, boxesPerMonth: 1, eggsPerBox: 30 });
+  assert.equal(checked.allowAddOns, false);
+  const body = { voucherCode: "0123456", voucherCardNumber: "000001", address: { receiver: "测试", phone: "13800138000", province: "浙江省", city: "宁波市", district: "鄞州区", detail: "测试路1号" } };
+  assert.equal((await call("/api/redemptions", { ...body, voucherCardNumber: "000002" })).status, 409);
+  assert.equal((await call("/api/redemptions", body)).status, 201);
+  assert.equal((await call("/api/redemptions", body)).status, 409);
+  const deliveries = await env.DB.prepare("SELECT delivery_month, quantity, eggs_per_box FROM subscription_deliveries ORDER BY delivery_month").all();
+  assert.equal(deliveries.results.length, 12);
+  assert.equal(deliveries.results[0].delivery_month, "2027-01");
+  assert.equal(deliveries.results[11].delivery_month, "2027-12");
+  assert.equal(deliveries.results.reduce((n, d) => n + d.quantity * d.eggs_per_box, 0), 360);
+  const stored = await env.DB.prepare("SELECT * FROM vouchers").all();
+  for (const card of cards) assert.ok(!JSON.stringify(stored).includes(card.password));
+  await env.DB.prepare("UPDATE vouchers SET expires_at = '2020-01-01' WHERE status = 'active'").run();
+  assert.equal((await call("/api/redemptions", { ...body, voucherCode: "0765432", voucherCardNumber: "000002" })).status, 410);
+  await env.DB.prepare("UPDATE admin_users SET role = 'staff'").run();
+  assert.equal((await call("/api/admin/vouchers/import", { cards }, cookie)).status, 403);
+});
+
+test("parses spreadsheet columns without losing zeroes and rejects duplicate pairs", async () => {
+  const { parseCardText } = await import("../shared/voucher-import.mjs");
+  assert.deepEqual(parseCardText("卡号\t密码\n000001\t0123456"), [{ cardNumber: "000001", password: "0123456" }]);
+  assert.deepEqual(parseCardText('\uFEFF"卡号","密码"\r\n"000001","0123456"'), [{ cardNumber: "000001", password: "0123456" }]);
+  assert.throws(() => parseCardText("000001\t0123456\n000001\t9999999"), /重复/);
+  assert.throws(() => parseCardText("000001\t0123456\t额外列"), /两列/);
+  assert.throws(() => parseCardText(""));
 });

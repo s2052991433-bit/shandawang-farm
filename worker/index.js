@@ -1,3 +1,4 @@
+import { normalizeCards } from "../shared/voucher-import.mjs";
 import { SEASONAL_PRODUCT_IMAGE_BY_ID, SUPPLEMENTAL_PRODUCTS } from "../shared/seasonal-catalog.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" };
@@ -242,6 +243,7 @@ const SCHEMA = [
   "CREATE INDEX IF NOT EXISTS idx_batches_product_status ON inventory_batches(product_id, status)",
   "CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC)",
   "CREATE INDEX IF NOT EXISTS idx_orders_fulfillment ON orders(fulfillment_status, created_at DESC)",
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_vouchers_card_number ON vouchers(json_extract(metadata_json, '$.cardNumber')) WHERE json_extract(metadata_json, '$.cardNumber') IS NOT NULL",
   "CREATE INDEX IF NOT EXISTS idx_vouchers_status_type ON vouchers(status, voucher_type)",
   "CREATE INDEX IF NOT EXISTS idx_farm_logs_published_date ON farm_logs(published, log_date DESC)",
   "CREATE INDEX IF NOT EXISTS idx_deliveries_month_status ON subscription_deliveries(delivery_month, status)",
@@ -577,7 +579,7 @@ async function validateVoucher(request, env) {
   const code = String(payload.code || "").trim().toUpperCase();
   if (!code) return json({ error: "missing_code", message: "请输入卡券兑换码" }, 400);
   const row = await env.DB.prepare("SELECT * FROM vouchers WHERE code_hash = ?").bind(await sha256(code)).first();
-  if (!row) return json({ error: "voucher_not_found", message: "没有找到这张卡券，请检查卡密后重试" }, 404);
+  if (!row || !matchesCardNumber(row, payload.cardNumber)) return json({ error: "voucher_not_found", message: "没有找到这张卡券，请检查卡密后重试" }, 404);
   if (row.status !== "active") return json({ error: "voucher_unavailable", message: row.status === "activated" ? "这张年卡已经激活" : "这张卡券当前不可使用" }, 409);
   if (row.expires_at && row.expires_at < new Date().toISOString().slice(0, 10)) return json({ error: "voucher_expired", message: "这张卡券已经过期" }, 410);
   const metadata = safeJson(row.metadata_json, {});
@@ -596,7 +598,12 @@ async function activateAnnualVoucher(env, row, code, payload) {
   const subscription = env.DB.prepare("INSERT INTO subscriptions (id, voucher_id, order_id, customer_name, phone, address_json, starts_on, months) VALUES (?, ?, ?, ?, ?, ?, '2027-01-01', 12)").bind(subscriptionId, row.id, orderId, address.receiver.trim(), address.phone.trim(), JSON.stringify(address));
   const deliveries = [];
   for (let month = 1; month <= 12; month += 1) deliveries.push(env.DB.prepare("INSERT INTO subscription_deliveries (id, subscription_id, delivery_month, quantity, eggs_per_box) VALUES (?, ?, ?, 1, 30)").bind(randomId("del_"), subscriptionId, "2027-" + String(month).padStart(2, "0")));
-  const results = await env.DB.batch([update, order, subscription].concat(deliveries));
+  let results;
+  try { results = await env.DB.batch([update, order, subscription].concat(deliveries)); }
+  catch (error) {
+    if (/UNIQUE constraint failed: subscriptions.voucher_id/i.test(String(error.message))) return json({ error: "voucher_already_used", message: "这张年卡已经被激活" }, 409);
+    throw error;
+  }
   if (!results[0] || !results[0].meta || results[0].meta.changes !== 1) return json({ error: "voucher_already_used", message: "这张年卡已经被激活" }, 409);
   return json({ id: number, orderNo: number, type: "annual_card_activation", status: "confirmed", subscriptionId: subscriptionId, startsOn: "2027-01-01", months: 12, eggsPerBox: 30, codeHint: code.slice(-4) }, 201);
 }
@@ -605,7 +612,8 @@ async function createRedemption(request, env) {
   const payload = await readBody(request);
   const code = String(payload.voucherCode || "").trim().toUpperCase();
   const row = await env.DB.prepare("SELECT * FROM vouchers WHERE code_hash = ?").bind(await sha256(code)).first();
-  if (!row || row.status !== "active") return json({ error: "voucher_unavailable", message: "卡券不存在或已经使用" }, 409);
+  if (!row || !matchesCardNumber(row, payload.voucherCardNumber) || row.status !== "active") return json({ error: "voucher_unavailable", message: "卡券不存在或已经使用" }, 409);
+  if (row.expires_at && row.expires_at < new Date().toISOString().slice(0, 10)) return json({ error: "voucher_expired", message: "这张卡券已经过期" }, 410);
   if (row.voucher_type === "annual_card") return activateAnnualVoucher(env, row, code, payload);
   if (!addressIsValid(payload.address)) return json({ error: "invalid_address", message: "请完整填写收货地址" }, 400);
   const items = await pricedItems(env, payload.items);
@@ -677,6 +685,43 @@ function randomVoucherCode(prefix) {
   return String(prefix || "SDW").toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 16) + "-" + tail.slice(0, 4) + "-" + tail.slice(4);
 }
 
+function matchesCardNumber(row, supplied) {
+  const number = safeJson(row.metadata_json, {}).cardNumber;
+  return number === undefined || number === String(supplied || "").trim();
+}
+
+async function importVouchers(request, env, identity) {
+  if (identity.user.role !== "owner") return json({ error: "owner_required", message: "仅农场主可以导入卡券" }, 403);
+  const text = await request.text();
+  if (text.length > 40000) return json({ error: "import_too_large", message: "每批最多100张卡" }, 413);
+  let cards;
+  try { cards = normalizeCards(JSON.parse(text).cards); }
+  catch (error) { return json({ error: "invalid_import", message: error instanceof SyntaxError ? "导入数据格式不正确" : error.message }, 400); }
+  const batchId = randomId("imp_");
+  const inserts = [];
+  let skipped = 0;
+  for (const card of cards) {
+    const hash = await sha256(card.password);
+    const existing = await env.DB.prepare("SELECT code_hash, voucher_type, metadata_json FROM vouchers WHERE code_hash = ? OR json_extract(metadata_json, '$.cardNumber') = ?").bind(hash, card.cardNumber).all();
+    if (existing.results.length) {
+      if (existing.results.length === 1 && existing.results[0].code_hash === hash && existing.results[0].voucher_type === "annual_card" && safeJson(existing.results[0].metadata_json, {}).cardNumber === card.cardNumber) { skipped++; continue; }
+      return json({ error: "import_conflict", message: "卡号或密码与已有卡券冲突，本批未导入，请核对原表" }, 409);
+    }
+    const metadata = { cardNumber: card.cardNumber, importBatch: batchId, allowTopUp: false, allowAddOns: false, deliveryPlan: { startsOn: "2027-01-01", months: 12, boxesPerMonth: 1, eggsPerBox: 30 } };
+    inserts.push(env.DB.prepare("INSERT INTO vouchers (id, code_hash, code_hint, voucher_type, name, face_value_cents, balance_cents, status, expires_at, metadata_json) VALUES (?, ?, ?, 'annual_card', '2027散养鸡蛋年卡', 79800, 0, 'active', '2027-12-31', ?)").bind(randomId("vch_"), hash, card.password.slice(-4), JSON.stringify(metadata)));
+  }
+  const count = inserts.length;
+  if (count) {
+    inserts.push(env.DB.prepare("INSERT INTO audit_logs (actor, action, entity_type, entity_id, detail_json) VALUES (?, 'import', 'voucher_batch', ?, ?)").bind(identity.actor, batchId, JSON.stringify({ count, skipped, type: "annual_card" })));
+    try { await env.DB.batch(inserts); }
+    catch (error) {
+      if (/UNIQUE constraint failed/i.test(String(error.message))) return json({ error: "import_conflict", message: "卡券已被另一操作导入，本批未写入，请刷新后重试" }, 409);
+      throw error;
+    }
+  }
+  return json({ count, skipped, batchId: count ? batchId : null }, count ? 201 : 200);
+}
+
 async function generateVouchers(request, env, identity) {
   const payload = await readBody(request);
   const count = Math.min(100, Math.max(1, Math.floor(Number(payload.count || 1))));
@@ -699,8 +744,8 @@ async function generateVouchers(request, env, identity) {
 }
 
 async function listVouchers(env) {
-  const result = await env.DB.prepare("SELECT id, code_hint, voucher_type, name, face_value_cents, balance_cents, status, expires_at, activated_at, created_at FROM vouchers ORDER BY created_at DESC LIMIT 300").all();
-  return json({ vouchers: (result.results || []).map(function (row) { return { id: row.id, codeHint: row.code_hint, type: row.voucher_type, name: row.name, value: row.face_value_cents / 100, balance: row.balance_cents / 100, status: row.status, expiresAt: row.expires_at, activatedAt: row.activated_at, createdAt: row.created_at }; }) });
+  const result = await env.DB.prepare("SELECT id, code_hint, voucher_type, name, face_value_cents, balance_cents, status, expires_at, activated_at, created_at, json_extract(metadata_json, '$.cardNumber') AS card_number FROM vouchers ORDER BY created_at DESC LIMIT 300").all();
+  return json({ vouchers: (result.results || []).map(function (row) { return { id: row.id, codeHint: row.code_hint, cardNumber: row.card_number, type: row.voucher_type, name: row.name, value: row.face_value_cents / 100, balance: row.balance_cents / 100, status: row.status, expiresAt: row.expires_at, activatedAt: row.activated_at, createdAt: row.created_at }; }) });
 }
 
 async function saveFarmLog(request, env, identity, id) {
@@ -735,7 +780,7 @@ async function updateDelivery(request, env, identity, id) {
 }
 
 function apiRouteKnown(pathname) {
-  return pathname === "/api/catalog/products" || pathname === "/api/farm-logs" || pathname === "/api/orders" || pathname === "/api/vouchers/validate" || pathname === "/api/redemptions" || pathname === "/api/admin/auth/status" || pathname === "/api/admin/auth/register" || pathname === "/api/admin/auth/login" || pathname === "/api/admin/auth/logout" || pathname === "/api/admin/session" || pathname === "/api/admin/dashboard" || pathname === "/api/admin/products" || /^\/api\/admin\/products\/[^/]+$/.test(pathname) || pathname === "/api/admin/orders" || /^\/api\/admin\/orders\/[^/]+$/.test(pathname) || pathname === "/api/admin/vouchers" || pathname === "/api/admin/farm-logs" || /^\/api\/admin\/farm-logs\/[^/]+$/.test(pathname) || pathname === "/api/admin/deliveries" || /^\/api\/admin\/deliveries\/[^/]+$/.test(pathname);
+  return pathname === "/api/admin/vouchers/import" || pathname === "/api/catalog/products" || pathname === "/api/farm-logs" || pathname === "/api/orders" || pathname === "/api/vouchers/validate" || pathname === "/api/redemptions" || pathname === "/api/admin/auth/status" || pathname === "/api/admin/auth/register" || pathname === "/api/admin/auth/login" || pathname === "/api/admin/auth/logout" || pathname === "/api/admin/session" || pathname === "/api/admin/dashboard" || pathname === "/api/admin/products" || /^\/api\/admin\/products\/[^/]+$/.test(pathname) || pathname === "/api/admin/orders" || /^\/api\/admin\/orders\/[^/]+$/.test(pathname) || pathname === "/api/admin/vouchers" || pathname === "/api/admin/farm-logs" || /^\/api\/admin\/farm-logs\/[^/]+$/.test(pathname) || pathname === "/api/admin/deliveries" || /^\/api\/admin\/deliveries\/[^/]+$/.test(pathname);
 }
 
 function sameOriginWrite(request) {
@@ -769,6 +814,7 @@ async function handleApi(request, env) {
     if (/^\/api\/admin\/products\/[^/]+$/.test(path) && method === "PATCH") return saveProduct(request, env, auth.identity, decodeURIComponent(path.split("/").pop()));
     if (path === "/api/admin/orders" && method === "GET") return adminOrders(env, url);
     if (/^\/api\/admin\/orders\/[^/]+$/.test(path) && method === "PATCH") return updateOrder(request, env, auth.identity, decodeURIComponent(path.split("/").pop()));
+    if (path === "/api/admin/vouchers/import" && method === "POST") return importVouchers(request, env, auth.identity);
     if (path === "/api/admin/vouchers" && method === "GET") return listVouchers(env);
     if (path === "/api/admin/vouchers" && method === "POST") return generateVouchers(request, env, auth.identity);
     if (path === "/api/admin/farm-logs" && method === "GET") return listFarmLogs(env, true);
