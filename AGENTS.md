@@ -8,6 +8,8 @@ Before making substantial visual changes, use the Product Design plugin's `get-c
 
 ## Confirmed design direction
 
+- 2026-09-19: The user requires photographic realism for ongoing ambient motion. Use actual farm footage as the homepage motion source, retaining its real lighting, perspective and movement. Do not synthesize butterflies, wind, foliage warping or mist over the existing photograph. Keep the current composition until footage is supplied. Prepare muted inline playback, a matching still poster, pause control, mobile encodes, offscreen/background pausing and reduced-motion/data-saving behavior. Do not claim the moving homepage is complete without accepted footage and real playback verification.
+
 - Treat `reference/selected-home.png` as the visual source of truth for the V2 homepage.
 - Preserve the immersive full-width mountain-farm panorama and the calm, functional seasonal information structure.
 - The home-to-farm transition must reuse the same panorama as a shared visual anchor: a subtle camera push, commerce-copy fade, and farm-title reveal, with a reduced-motion fallback.
@@ -15,7 +17,7 @@ Before making substantial visual changes, use the Product Design plugin's `get-c
 - Keep the primary action commercial (`看看当季`) and the secondary action immersive (`进入农场`).
 - Content and page presentation should feel immersive: each route is a chapter in one continuous farm journey, using the shared panorama, documentary farm imagery, time-of-day cues, and restrained transitions.
 - Preserve real multi-page hierarchy and URLs even when transitions feel seamless. Browsing may be cinematic; cart, address, payment, and confirmation must remain quiet and explicit.
-- Keep customer-facing pages free of account registration. The management backend must use individual administrator accounts with unique phone numbers, hashed passwords, secure server sessions, role-aware authorization, failed-login controls, and per-person audit records. Allow only the first owner to self-register with a one-time setup code; close self-registration afterward and require owner-issued invitations for future staff accounts. Never restore a shared password as the normal admin login.
+- Customer registration by verified phone number is requested as of 2026-09-19; implementation is pending Tencent SMS qualification and integration. Existing customer redemptions must be preserved. The management backend must use individual administrator accounts with unique phone numbers, hashed passwords, secure server sessions, role-aware authorization, failed-login controls, and per-person audit records. Allow only the first owner to self-register with a one-time setup code; close self-registration afterward and require owner-issued invitations for future staff accounts. Never restore a shared password as the normal admin login.
 
 When implementing from a selected generated mock, treat that image as the source of truth for layout, component anatomy, density, spacing, color, typography, visible content, and hierarchy.
 
