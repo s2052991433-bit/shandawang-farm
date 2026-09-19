@@ -579,7 +579,7 @@ async function validateVoucher(request, env) {
   const code = String(payload.code || "").trim().toUpperCase();
   if (!code) return json({ error: "missing_code", message: "请输入卡券兑换码" }, 400);
   const row = await env.DB.prepare("SELECT * FROM vouchers WHERE code_hash = ?").bind(await sha256(code)).first();
-  if (!row || !matchesCardNumber(row, payload.cardNumber)) return json({ error: "voucher_not_found", message: "没有找到这张卡券，请检查卡密后重试" }, 404);
+  if (!row) return json({ error: "voucher_not_found", message: "没有找到这张卡券，请检查卡密后重试" }, 404);
   if (row.status !== "active") return json({ error: "voucher_unavailable", message: row.status === "activated" ? "这张年卡已经激活" : "这张卡券当前不可使用" }, 409);
   if (row.expires_at && row.expires_at < new Date().toISOString().slice(0, 10)) return json({ error: "voucher_expired", message: "这张卡券已经过期" }, 410);
   const metadata = safeJson(row.metadata_json, {});
@@ -612,7 +612,7 @@ async function createRedemption(request, env) {
   const payload = await readBody(request);
   const code = String(payload.voucherCode || "").trim().toUpperCase();
   const row = await env.DB.prepare("SELECT * FROM vouchers WHERE code_hash = ?").bind(await sha256(code)).first();
-  if (!row || !matchesCardNumber(row, payload.voucherCardNumber) || row.status !== "active") return json({ error: "voucher_unavailable", message: "卡券不存在或已经使用" }, 409);
+  if (!row || row.status !== "active") return json({ error: "voucher_unavailable", message: "卡券不存在或已经使用" }, 409);
   if (row.expires_at && row.expires_at < new Date().toISOString().slice(0, 10)) return json({ error: "voucher_expired", message: "这张卡券已经过期" }, 410);
   if (row.voucher_type === "annual_card") return activateAnnualVoucher(env, row, code, payload);
   if (!addressIsValid(payload.address)) return json({ error: "invalid_address", message: "请完整填写收货地址" }, 400);
@@ -683,11 +683,6 @@ function randomVoucherCode(prefix) {
   let tail = "";
   for (let index = 0; index < bytes.length; index += 1) tail += alphabet[bytes[index] % alphabet.length];
   return String(prefix || "SDW").toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 16) + "-" + tail.slice(0, 4) + "-" + tail.slice(4);
-}
-
-function matchesCardNumber(row, supplied) {
-  const number = safeJson(row.metadata_json, {}).cardNumber;
-  return number === undefined || number === String(supplied || "").trim();
 }
 
 async function importVouchers(request, env, identity) {
