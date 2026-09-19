@@ -1,25 +1,29 @@
-# Seasons and weather — current design QA
+# Coordinated courtyard revision — design QA
 
-final result: blocked
+Implementation status: ready for design review. Production release: not performed.
 
-The interactive manual preview is working. Full acceptance is blocked on real forecast connectivity, WebGL-capable device verification, and the user's judgment of the motion. No production deployment has occurred. The historical still-artwork result below remains limited to that earlier scope.
+## Changes
 
-## Current implementation and evidence (2026-09-19)
+- Preserved the selected old-tree courtyard and ivory/forest-green brand. Home now features the 2027 egg annual card followed by food, journal and distinct redemption entries; shop holds the full catalog and starts with current-season food. Shop/farm use compact versions of the same courtyard.
+- Reduced desktop copy coverage, unified section gutters/type/image proportions, and retained image-first mobile copy. Weather settings are a separate closable dialog with a backdrop, focus handling and Escape support.
+- Added generated rain and night lighting plates preserving the pavilion/tree/path composition. Rain has wet-ground imagery, layered streaks, roof drips and gravel impacts; fog is confined to the valley. Night lamp light is part of the photographic plate. Other seasons receive blurred low-frequency light transfer to avoid autumn leaf outlines bleeding into bare winter branches.
+- Replaced divergent WebGL/Canvas paths with one Canvas2D renderer. Local pinned mesh patches add restrained leaves and hen-head movement; this is photographic deformation, not walking, skeletal animation or footage. Drawing pauses offscreen/in hidden tabs and follows reduced-motion settings; frame cadence drops under load.
+- Correct China-time solar terms/lunar dates replace fixed labels. Historical logs retain their dates; future/malformed records are excluded. Explicit examples are confined to development/review mode; production with no records shows an empty state.
+- Manual scene/pause preferences survive route changes. Forecast failure is clearly labeled; standalone review deliberately makes no weather request. Annual-card copy consistently specifies January–December 2027, 12 monthly boxes of 30 eggs (360 total), ¥798.
 
-- Added spring, summer and winter variants of the selected courtyard. The pavilion, oval window, large tree, path and hens remain the scene anchors. Winter uses sparse foliage, not automatic snow. Rain/snow conditions are selected independently from season.
-- Live browser observations at 1363 × 936: autumn rain, winter night with snow and warm lamp light. Actual iframe viewports 390 × 844 and 760 × 844: spring rain with settings open, summer sunshine with settings closed. Controls fit without horizontal clipping; the open mobile settings intentionally overlay part of the hero and can be closed with the settings button.
-- Verified season changes load the corresponding image, weather and day/night controls update the status and picture, and pause switches to an enabled play control. Actual rain streaks and snow particles are visible in the rendered screenshots. The photos preserve the accepted scene layout, copy placement and image crop established below.
-- This cloud browser returns no WebGL context. Canvas2D compatibility rendering was therefore added and verified. The WebGL shader path and native iOS Safari remain unverified. Canvas2D animates precipitation and subtle illumination, not leaf geometry or hens; hens remain still in both renderers.
-- The standalone interactive `courtyard-preview.html` embeds four images and the renderers. It was opened through the managed HTTP preview and checked for successful initialization and season/weather changes. It explicitly says manual demo and unpublished; it performs no weather requests. Recreate it with `node scripts/build-courtyard-preview.mjs <destination>`.
-- The automatic site mode uses Asia/Shanghai seasons. `/api/weather` attempts a labeled MET Norway regional forecast with timeout, request deduplication and cache expiry. Real requests timed out in this environment. The browser correctly shows weather unavailable instead of invented temperatures. Exact farm coordinates are unknown; the default is explicitly labeled Ningbo city.
-- Final production build and all 24 weather/Worker tests passed before the final small failure-display/cache-duration corrections. Those corrections only hide an unusable standalone canvas and align the frontend failure retry interval with the backend; they do not change successful rendering or business behavior.
-- Inspected browser console sample: only extension metadata errors, no application-origin errors.
+## Verification
+
+- Browser at 1363 × 936: inspected revised autumn night/rain and winter snow. Reloaded after the winter light-transfer correction and verified the blue/purple leaf-edge artifacts were removed. Rain/night plates and loaded continuous canvas were visibly present.
+- Actual 390 × 844 and 760 × 844 iframe viewports: inspected image/copy layout and the mobile settings dialog opening/closing. This is responsive Chromium evidence, not native Safari.
+- Complete self-contained review HTML opened successfully through the managed browser. Verified home-to-shop navigation, current-season filter, preserved manual scene state, enabled pause/play controls, and separate annual/gift card entry presentation. No real card, order, payment or administrator operations were submitted.
+- Production build passed. 30 calendar/motion/weather/Worker tests passed, including existing printed-card import and 12-delivery activation regressions. Browser log sample showed extension metadata errors only, no application-origin errors in the inspected sample.
+- Export tools: `build-courtyard-preview.mjs` produces the compact six-plate scene review; `build-site-review.mjs` embeds the review-mode app, stylesheet and 30 images in a single HTML with hash navigation. These are review artifacts, not another public deployment.
 
 ## Remaining limits
 
-- This is generated scenery with procedural weather/light effects. It is not farm footage, live monitoring, an animated chicken scene, or accepted proof of absolute photorealism.
-- True weather linkage has code but no successful live integration evidence. Verify the provider from the intended Cloudflare environment and configure the actual location before treating the feature as release-ready.
-- The home season badge now uses the actual China-time season. Unrelated pre-existing solar-term/date content elsewhere on the page has not been corrected by this task.
+- Real weather requests returned `weather_unavailable`; Cloudflare-side provider connectivity and the actual farm coordinates still require verification. The default remains explicitly Ningbo region. No invented weather values are displayed.
+- Motion realism awaits the user's judgment. There is no measured real-device frame-rate/battery claim and no native iPhone/Safari test yet. Summer/winter lighting is transferred from the generated plates rather than separately photographed.
+- SMS/customer registration remains paused pending business qualification. Existing card secrets and production data were not accessed or modified.
 
 ---
 

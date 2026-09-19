@@ -1,14 +1,15 @@
 export const SEASONS = { spring: '春', summer: '夏', autumn: '秋', winter: '冬' };
-export const WEATHER_NAMES = { sunny: '晴', cloudy: '阴', rain: '雨', snow: '雪' };
+export const WEATHER_NAMES = { sunny: '晴', cloudy: '阴', rain: '雨', fog: '雾', snow: '雪' };
 export function chinaTime(date = new Date()) {
-  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' }).formatToParts(date).filter(p => p.type !== 'literal').map(p => [p.type, Number(p.value)]));
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(date).filter(p => p.type !== 'literal').map(p => [p.type, Number(p.value)]));
   return { ...parts, season: parts.month >= 3 && parts.month <= 5 ? 'spring' : parts.month >= 6 && parts.month <= 8 ? 'summer' : parts.month >= 9 && parts.month <= 11 ? 'autumn' : 'winter' };
 }
 export function forecastScene(symbol, details = {}) {
   const s = String(symbol || '').toLowerCase();
   if (s.includes('snow') || s.includes('sleet')) return 'snow';
   if (s.includes('rain')) return 'rain';
-  if (s.includes('cloudy') || s.includes('fog') || Number(details.cloud_area_fraction) >= 65) return 'cloudy';
+  if (s.includes('fog')) return 'fog';
+  if (s.includes('cloudy') || Number(details.cloud_area_fraction) >= 65) return 'cloudy';
   if (s.includes('clear') || s.includes('fair')) return 'sunny';
   return 'cloudy';
 }

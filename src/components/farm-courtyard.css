@@ -41,7 +41,7 @@
     padding: 27px 24px 30px; background: #f8f3e8;
   }
   .hero.hero-courtyard h1 { font-size: clamp(35px, 8.5vw, 48px); }
-  .hero.hero-courtyard h1 br { display: none; }
+  .hero.hero-courtyard h1 br { display: block; }
   .hero.hero-courtyard .eyebrow { margin-bottom: 13px; }
   .hero.hero-courtyard .hero-copy { margin-top: 16px; font-size: 13px; }
   .hero.hero-courtyard .hero-actions { margin-top: 22px; flex-wrap: nowrap; }
@@ -68,3 +68,42 @@
 .courtyard-weather :is(button,select,input):focus-visible { outline:3px solid #b57140; outline-offset:2px; }
 @media(max-width:760px){.courtyard-media { height:clamp(310px,85vw,490px);bottom:auto; }.courtyard-weather { top:10px;right:12px; }.weather-status { font-size:11px; }.weather-panel { width:270px; }.weather-topline { padding-left:10px; }}
 @media(prefers-reduced-motion:reduce){.courtyard-canvas { transition:none; }}
+
+/* Keep a clear view into the courtyard, then give each route its own pace. */
+.hero.hero-courtyard .hero-content {width:370px;max-width:35vw;left:var(--content-gutter);top:auto;bottom:100px;transform:none;animation:courtyardCopyIn .65s ease both;padding:26px;background:#faf7efed;}
+.hero.hero-courtyard h1 {font-size:clamp(38px,3.4vw,50px);line-height:1.26;letter-spacing:.025em;text-wrap:balance;}
+.hero.hero-courtyard .hero-copy {font-size:15px;line-height:1.85;margin-top:18px;}
+.hero.hero-courtyard .eyebrow {font-size:12px;margin-bottom:16px;}
+.hero.hero-courtyard .hero-actions {gap:10px;margin-top:22px;}
+.hero.hero-courtyard .button {font-size:14px;min-height:48px;padding-inline:14px;}
+.hero.hero-courtyard .hero-scroll-cue {display:none;}
+.hero.hero-courtyard.hero-shop,.hero.hero-courtyard.hero-farm {height:440px;min-height:440px;max-height:none;}
+.hero.hero-courtyard.hero-shop .hero-content,.hero.hero-courtyard.hero-farm .hero-content {bottom:48px;width:390px;max-width:39vw;}
+.hero.hero-courtyard.hero-shop h1,.hero.hero-courtyard.hero-farm h1 {font-size:36px;}
+.hero.hero-courtyard .courtyard-media {view-transition-name:farm-panorama;transition:transform .85s cubic-bezier(.2,.72,.2,1);transform-origin:68% 58%;}
+.hero.hero-courtyard .hero-image {view-transition-name:none;}
+.is-transitioning .hero.hero-courtyard .courtyard-media {transform:scale(1.025);}
+.is-transitioning .hero.hero-courtyard .hero-content {opacity:0;transform:translateY(8px);animation:none;}
+@keyframes courtyardCopyIn {from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(max-width:1000px) and (min-width:761px){.hero.hero-courtyard .hero-content {left:28px;max-width:43vw;width:350px;padding:24px;}.hero.hero-courtyard.hero-shop .hero-content,.hero.hero-courtyard.hero-farm .hero-content {max-width:44vw;}}
+@media(max-width:760px){
+ .hero.hero-courtyard .hero-content,.hero.hero-courtyard.hero-shop .hero-content,.hero.hero-courtyard.hero-farm .hero-content {left:auto;bottom:auto;top:auto;max-width:none;width:100%;padding:28px 24px 30px;transform:none;animation:none;background:#f8f3e8;}
+ .hero.hero-courtyard h1 {font-size:36px;}.hero.hero-courtyard .hero-copy {font-size:15px;}.hero.hero-courtyard .eyebrow {font-size:12px;}.hero.hero-courtyard .hero-actions .button {font-size:14px;}
+ .hero.hero-courtyard.hero-shop,.hero.hero-courtyard.hero-farm {height:auto;min-height:0;padding-top:220px;}.hero.hero-courtyard.hero-shop .courtyard-media,.hero.hero-courtyard.hero-farm .courtyard-media,.hero.hero-courtyard.hero-shop .hero-image,.hero.hero-courtyard.hero-farm .hero-image {height:220px;}
+ .hero.hero-courtyard.hero-shop h1,.hero.hero-courtyard.hero-farm h1 {font-size:29px;}.hero.hero-courtyard.hero-shop .hero-copy,.hero.hero-courtyard.hero-farm .hero-copy {display:none;}.hero.hero-courtyard .hero-season-summary {padding:15px 24px;}.hero.hero-courtyard .hero-season-summary strong {font-size:16px;}.hero.hero-courtyard .hero-season-summary small {font-size:12px;letter-spacing:0;}
+}
+@media(prefers-reduced-motion:reduce){.hero.hero-courtyard .courtyard-media,.hero.hero-courtyard .hero-content {transition:none;animation:none;}.is-transitioning .hero.hero-courtyard .courtyard-media{transform:none;}}
+/* Weather information stays quiet; its details open in a separate, closable sheet. */
+.weather-topline {padding:0 3px 0 12px;border:0;background:#faf7efed;}
+.weather-status {font-size:12px;}.courtyard-weather {top:18px;right:24px;}
+.courtyard-disclosure {position:absolute;right:24px;bottom:70px;padding:6px 9px;background:#faf7efd9;color:#334b3e;font-size:12px;z-index:2;letter-spacing:.03em;}
+.hero-shop .courtyard-disclosure,.hero-farm .courtyard-disclosure {bottom:18px;}
+.weather-modal {position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;}
+.weather-backdrop {position:absolute;inset:0;border:0;background:#0b211966;}
+.weather-modal .weather-panel {position:relative;width:410px;max-width:100%;max-height:calc(100dvh - 48px);overflow:auto;margin:0;padding:24px;background:#faf7ef;color:#143d30;border:1px solid #143d3026;box-shadow:0 16px 80px #071d1930;}
+.weather-panel header {display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px;}.weather-panel h2 {font:500 26px/1.4 "Noto Serif SC",serif;margin:0;}.weather-panel p {font-size:15px;line-height:1.85;margin:12px 0;}
+.weather-panel .weather-detail {font-size:13px;color:#5b6b60;}.weather-panel fieldset {border:0;border-top:1px solid #143d3030;padding:18px 0 0;margin:24px 0 0;}.weather-panel legend {font-size:13px;padding:0 8px 0 0;}
+.weather-panel label {font-size:14px;margin:12px 0;}.weather-panel select {font-size:14px;min-width:170px;min-height:44px;}.weather-panel small {font-size:12px;}.weather-panel .weather-icon {flex-shrink:0;width:44px;height:44px;}
+.weather-demo-toggle {border:0;border-bottom:1px solid #143d3055;background:none;padding:8px 0;min-height:44px;font-size:14px;cursor:pointer;}.weather-reset {font-size:14px;}
+.weather-modal :is(button,input,select,a):focus-visible {outline:3px solid #b57140;outline-offset:3px;}
+@media(max-width:760px){.courtyard-weather {top:12px;right:12px;}.weather-topline {padding-left:10px;}.weather-status {font-size:12px;}.courtyard-disclosure {right:12px;top:calc(clamp(310px,85vw,490px) - 34px);bottom:auto;font-size:12px;}.hero-shop .courtyard-disclosure,.hero-farm .courtyard-disclosure {top:186px;bottom:auto;}.weather-modal {align-items:flex-end;padding:12px;}.weather-modal .weather-panel {padding:20px;width:100%;max-height:calc(100dvh - 32px);}.weather-panel h2 {font-size:25px;}}
