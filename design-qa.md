@@ -1,4 +1,29 @@
-# Selected courtyard hero — design QA
+# Seasons and weather — current design QA
+
+final result: blocked
+
+The interactive manual preview is working. Full acceptance is blocked on real forecast connectivity, WebGL-capable device verification, and the user's judgment of the motion. No production deployment has occurred. The historical still-artwork result below remains limited to that earlier scope.
+
+## Current implementation and evidence (2026-09-19)
+
+- Added spring, summer and winter variants of the selected courtyard. The pavilion, oval window, large tree, path and hens remain the scene anchors. Winter uses sparse foliage, not automatic snow. Rain/snow conditions are selected independently from season.
+- Live browser observations at 1363 × 936: autumn rain, winter night with snow and warm lamp light. Actual iframe viewports 390 × 844 and 760 × 844: spring rain with settings open, summer sunshine with settings closed. Controls fit without horizontal clipping; the open mobile settings intentionally overlay part of the hero and can be closed with the settings button.
+- Verified season changes load the corresponding image, weather and day/night controls update the status and picture, and pause switches to an enabled play control. Actual rain streaks and snow particles are visible in the rendered screenshots. The photos preserve the accepted scene layout, copy placement and image crop established below.
+- This cloud browser returns no WebGL context. Canvas2D compatibility rendering was therefore added and verified. The WebGL shader path and native iOS Safari remain unverified. Canvas2D animates precipitation and subtle illumination, not leaf geometry or hens; hens remain still in both renderers.
+- The standalone interactive `courtyard-preview.html` embeds four images and the renderers. It was opened through the managed HTTP preview and checked for successful initialization and season/weather changes. It explicitly says manual demo and unpublished; it performs no weather requests. Recreate it with `node scripts/build-courtyard-preview.mjs <destination>`.
+- The automatic site mode uses Asia/Shanghai seasons. `/api/weather` attempts a labeled MET Norway regional forecast with timeout, request deduplication and cache expiry. Real requests timed out in this environment. The browser correctly shows weather unavailable instead of invented temperatures. Exact farm coordinates are unknown; the default is explicitly labeled Ningbo city.
+- Final production build and all 24 weather/Worker tests passed before the final small failure-display/cache-duration corrections. Those corrections only hide an unusable standalone canvas and align the frontend failure retry interval with the backend; they do not change successful rendering or business behavior.
+- Inspected browser console sample: only extension metadata errors, no application-origin errors.
+
+## Remaining limits
+
+- This is generated scenery with procedural weather/light effects. It is not farm footage, live monitoring, an animated chicken scene, or accepted proof of absolute photorealism.
+- True weather linkage has code but no successful live integration evidence. Verify the provider from the intended Cloudflare environment and configure the actual location before treating the feature as release-ready.
+- The home season badge now uses the actual China-time season. Unrelated pre-existing solar-term/date content elsewhere on the page has not been corrected by this task.
+
+---
+
+# Selected courtyard still hero — historical design QA
 
 final result: passed
 

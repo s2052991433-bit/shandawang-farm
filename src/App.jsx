@@ -23,6 +23,7 @@ import {
 import { storeApi } from "./services/storeApi";
 import { AdminApp } from "./admin/AdminApp";
 import { FarmCourtyard } from "./components/FarmCourtyard";
+import { chinaTime, SEASONS } from "../shared/farm-weather.mjs";
 import { SEASONAL_PRODUCT_IMAGE_BY_ID, SUPPLEMENTAL_PRODUCTS } from "../shared/seasonal-catalog.js";
 
 const seasons = [
@@ -751,7 +752,7 @@ function ImmersiveHero({ variant, now, navigate }) {
       </div>
       {variant === "home" && (
         <button className="hero-season-summary" onClick={() => document.querySelector(".season-strip")?.scrollIntoView({ behavior: "smooth" })}>
-          <span>当前节气</span><strong>处暑</strong><i /><small>8月23日 · 早晚采摘更从容</small><ArrowRight />
+          <span>农场四季</span><strong>{SEASONS[chinaTime(now).season]}季</strong><i /><small>随季节，走进山里的日常</small><ArrowRight />
         </button>
       )}
       <div className="hero-side-note" aria-hidden="true"><span>29°56′N</span><i /><span>NINGBO</span></div>
