@@ -1,0 +1,51 @@
+/* Keep the selected landscape intact and give copy a quiet, readable surface. */
+.hero.hero-courtyard { min-height: 650px; height: min(calc(100svh - 86px), 780px); max-height: 780px; }
+.hero.hero-courtyard .hero-image { object-position: center 44%; }
+.hero.hero-courtyard::after, .hero.hero-courtyard .hero-scrim { display: none; }
+.hero.hero-courtyard .hero-content {
+  left: clamp(24px, 4vw, 68px);
+  top: 47%;
+  width: min(470px, 39vw);
+  padding: clamp(24px, 2.5vw, 38px);
+  background: rgba(249, 245, 235, .94);
+  color: #143d30;
+}
+.hero.hero-courtyard h1 { font-size: clamp(40px, 4.3vw, 64px); line-height: 1.2; letter-spacing: .035em; }
+.hero.hero-courtyard .eyebrow { margin-bottom: 19px; font-size: 11px; }
+.hero.hero-courtyard .hero-copy { margin-top: 22px; font-size: 14px; line-height: 1.9; letter-spacing: .025em; color: #354d40; }
+.hero.hero-courtyard .hero-copy br { display: none; }
+.hero.hero-courtyard .hero-actions { margin-top: 26px; gap: 12px; flex-wrap: wrap; }
+.hero.hero-courtyard .button { padding-inline: 18px; font-size: 14px; }
+.hero.hero-courtyard .button-primary { background: #143d30; color: #fff; }
+.hero.hero-courtyard .button-quiet { background: #faf7ef; color: #143d30; border-color: #143d3040; }
+.hero.hero-courtyard .hero-side-note { display: none; }
+@media (max-width: 1000px) and (min-width: 761px) {
+  .hero.hero-courtyard .hero-content { width: 390px; max-width: 48%; padding: 25px; }
+  .hero.hero-courtyard .hero-actions { gap: 8px; }
+  .hero.hero-courtyard .button { padding-inline: 13px; }
+}
+@media (max-width: 760px) {
+  .hero.hero-courtyard {
+    display: flex; flex-direction: column;
+    min-height: 0; height: auto; max-height: none;
+    padding-top: clamp(310px, 85vw, 490px);
+    background: #f8f3e8; color: #143d30;
+  }
+  .hero.hero-courtyard .hero-image {
+    height: clamp(310px, 85vw, 490px);
+    object-position: 76% 48%;
+  }
+  .hero.hero-courtyard .hero-content {
+    position: relative; inset: auto; width: 100%; max-width: none;
+    transform: none; animation: none;
+    padding: 27px 24px 30px; background: #f8f3e8;
+  }
+  .hero.hero-courtyard h1 { font-size: clamp(35px, 8.5vw, 48px); }
+  .hero.hero-courtyard h1 br { display: none; }
+  .hero.hero-courtyard .eyebrow { margin-bottom: 13px; }
+  .hero.hero-courtyard .hero-copy { margin-top: 16px; font-size: 13px; }
+  .hero.hero-courtyard .hero-actions { margin-top: 22px; flex-wrap: nowrap; }
+  .hero.hero-courtyard .hero-actions .button { flex: 1; padding-inline: 10px; font-size: 13px; }
+  .hero.hero-courtyard .hero-season-summary { position: relative; inset: auto; min-height: 54px; background: #f8f3e8; }
+  .hero.hero-courtyard .hero-scroll-cue { display: none; }
+}
