@@ -22,6 +22,7 @@ import {
 } from "@phosphor-icons/react";
 import { storeApi } from "./services/storeApi";
 import { AdminApp } from "./admin/AdminApp";
+import { FarmAtmosphere } from "./components/FarmAtmosphere";
 import { SEASONAL_PRODUCT_IMAGE_BY_ID, SUPPLEMENTAL_PRODUCTS } from "../shared/seasonal-catalog.js";
 
 const seasons = [
@@ -737,7 +738,7 @@ function ImmersiveHero({ variant, now, navigate }) {
 
   return (
     <section className={`hero hero-${variant}`} aria-labelledby="hero-title">
-      <img className="hero-image" src="/assets/hero-farm-v2.webp" alt="群山环抱、晨光中的山大王农场全景" />
+      {variant === "home" ? <FarmAtmosphere /> : <img className="hero-image" src="/assets/hero-farm-v2.webp" alt="群山环抱、晨光中的山大王农场全景" />}
       <div className="hero-scrim" aria-hidden="true" />
       <div className="hero-content" key={variant}>
         <p className="eyebrow">{content.eyebrow}</p>
