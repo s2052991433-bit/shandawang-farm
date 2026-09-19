@@ -8,6 +8,10 @@ Before making substantial visual changes, use the Product Design plugin's `get-c
 
 ## Confirmed design direction
 
+- Latest correction, 2026-09-19: The user also rejected the bamboo/pond direction as incompatible with 山大王农场 aesthetics. Neither the mist nor pond candidate is approved. Re-ground in reference/selected-home.png: luminous warm natural light, ivory/deep green, spacious cultivated tea-hill panorama, welcoming maintained farm buildings and restrained editorial typography. Do not confuse photographic realism with gloomy, shabby or cluttered scenery. A new warmer photographic background study is awaiting feedback; it is not an approved animation.
+
+- 2026-09-19 follow-up: User rejected the first panorama-and-mist preview as monotonous and fake; mist was imperceptible and unattractive. Do not publish that candidate. The next visual experiment replaces the background with a layered bamboo/pond/tea-hill scene, removes fog, animates pond reflections and moves body copy onto an ivory area for contrast. Generated scenery must remain labeled conceptual in review materials; user acceptance and device verification are still pending.
+
 - 2026-09-19: The user wants photographic realism with continuously rendered natural motion and has no original footage; they explicitly asked us to create it. The first candidate preserves the current panorama and synthesizes restrained valley mist and changing light with WebGL. Do not describe synthesized visuals as farm footage or a live camera. Include pause controls, offscreen/background pausing, reduced-motion/data-saving behavior and a static fallback. Visual acceptance and mobile playback verification remain pending; a successful build alone does not establish realism.
 
 - Treat `reference/selected-home.png` as the visual source of truth for the V2 homepage.
