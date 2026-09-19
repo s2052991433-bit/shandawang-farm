@@ -7,7 +7,7 @@ export function normalizeCards(cards) {
     if (typeof card?.cardNumber !== "string" || typeof card?.password !== "string") throw new Error(`第${index + 1}行卡号和密码必须为文本`);
     const cardNumber = card.cardNumber.trim();
     const password = card.password.trim();
-    if (!/^[A-Za-z0-9-]{1,64}$/.test(cardNumber) || !/^[A-Za-z0-9-]{6,128}$/.test(password)) throw new Error(`第${index + 1}行卡号或密码格式不正确`);
+    if (!/^[A-Za-z0-9.-]{1,64}$/.test(cardNumber) || !/^[A-Za-z0-9-]{6,128}$/.test(password)) throw new Error(`第${index + 1}行卡号或密码格式不正确`);
     if (numbers.has(cardNumber) || passwords.has(password.toUpperCase())) throw new Error(`第${index + 1}行存在重复卡号或密码`);
     numbers.add(cardNumber); passwords.add(password.toUpperCase());
     return { cardNumber, password };

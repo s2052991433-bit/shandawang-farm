@@ -1186,7 +1186,6 @@ function VoucherFlow({ close, products }) {
   const steps = ["验券", "选食物", "补差加购", "收货信息", "确认", "完成"];
   const [step, setStep] = useState(0);
   const [code, setCode] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
   const [voucher, setVoucher] = useState(null);
   const [quantities, setQuantities] = useState({});
   const [loading, setLoading] = useState(false);
@@ -1208,7 +1207,7 @@ function VoucherFlow({ close, products }) {
     if (!code.trim()) { setError("请输入卡券兑换码"); return; }
     setLoading(true); setError("");
     try {
-      const result = await storeApi.validateVoucher(code, cardNumber);
+      const result = await storeApi.validateVoucher(code);
       setVoucher(result);
       setStep(result.type === "annual_card" ? 3 : 1);
     } catch (validationError) {
@@ -1228,7 +1227,7 @@ function VoucherFlow({ close, products }) {
   const submit = async () => {
     setLoading(true);
     try {
-      const created = await storeApi.createRedemption({ voucherId: voucher.id, voucherCode: voucher.code, voucherCardNumber: cardNumber, items: selectedItems, address, subtotal, shipping, credit, topUpAmount, payment });
+      const created = await storeApi.createRedemption({ voucherId: voucher.id, voucherCode: voucher.code, items: selectedItems, address, subtotal, shipping, credit, topUpAmount, payment });
       setRedemption(created); setStep(5);
     } catch (submitError) { setError(submitError.message); } finally {
       setLoading(false);
@@ -1241,7 +1240,6 @@ function VoucherFlow({ close, products }) {
       <main className="flow-main">
         {step === 0 && <FlowSection eyebrow="01 · 卡券校验" title="先看看，这张卡里有什么" intro="输入兑换码后会显示余额、有效期和可兑换范围。">
           <div className="voucher-code-card"><Ticket weight="thin" /><div><span>山大王农场</span><strong>时令礼赠卡</strong><small>SHAN DA WANG FARM GIFT</small></div></div>
-          <label>实体卡卡号（印有卡号时填写）<div className="voucher-code-input"><input aria-label="实体卡卡号" value={cardNumber} onChange={(event) => setCardNumber(event.target.value)} placeholder="请输入卡号，保留开头的0" /></div></label>
           <div className="voucher-code-input"><input type="password" aria-label="卡密或兑换码" value={code} onChange={(event) => setCode(event.target.value)} onKeyDown={(event) => event.key === "Enter" && validateCode()} placeholder="请输入兑换码" /><button className="button button-primary" disabled={loading} onClick={validateCode}>{loading ? "正在校验…" : "验证卡券"}</button></div>
           <p className="demo-code">体验兑换码：<button onClick={() => setCode("SDW2026")}>余额礼卡</button> · <button onClick={() => setCode("SDW-EGG-2027-DEMO")}>鸡蛋年卡</button></p>
           {error && <p className="form-error">{error}</p>}
