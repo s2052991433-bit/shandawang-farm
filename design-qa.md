@@ -1,6 +1,8 @@
 # Coordinated courtyard revision — design QA
 
-Implementation status: ready for design review. Production release: not performed.
+Production release: published on 2026-09-20 through the existing Cloudflare Workers Git integration. The canonical domain renders the new courtyard and home hierarchy. Production weather is now connected: the UI showed a labeled Ningbo regional forecast with forecast/update timestamps. These observations supersede the earlier connectivity limit below. Native iOS Safari and measured physical-device performance remain unverified.
+
+Release verification found legacy database product copy overriding the fixed 2027 annual-card description. Product normalization now applies the canonical annual-card presentation while preserving database price, inventory and other operating data.
 
 ## Changes
 
