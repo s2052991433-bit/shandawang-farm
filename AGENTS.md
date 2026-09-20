@@ -8,6 +8,8 @@ Before making substantial visual changes, use the Product Design plugin's `get-c
 
 ## Confirmed design direction
 
+- 2026-09-20: After receiving the coordinated revision and its stated weather/device limits, the user explicitly requested “发布”. This authorizes publishing that revision through the existing Cloudflare Workers Git integration. Preserve honest weather failure handling and the current D1 data; no additional design confirmation is needed for this release.
+
 - 2026-09-19: User selected the “old persimmon tree / egg-gathering courtyard” image with “可以，就用它了”. The canonical new hero artwork is `public/assets/hero-courtyard-1672.webp` (responsive sibling: `hero-courtyard-960.webp`). Preserve the tree canopy, warm timber pavilion with oval window, three hens, inviting path, and mountain backdrop. Do not regenerate or replace the accepted composition without a new user request. `reference/selected-home.png` remains a reference for the surrounding brand UI, not the current hero artwork.
 - This is AI-generated conceptual scenery, not verified photography of the actual farm. Use honest alt text and never describe it as live monitoring or farm footage.
 - The user rejected the first imperceptible mist overlay and the gloomy bamboo/pond experiment. Both are retired. The user approved exploring season/weather-linked animation. Spring, summer and winter variants preserve the accepted autumn composition. The coordinated revision uses one Canvas2D renderer with local leaf/hen mesh motion, spatial rain/fog/snow, and generated rain/night lighting plates. Motion quality still awaits user review. Do not equate artwork approval with motion approval.
