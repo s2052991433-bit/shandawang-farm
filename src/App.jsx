@@ -352,8 +352,13 @@ function productSaleMode(product, month = chinaTime().month) {
 function normalizeProduct(product) {
   const season = product.season || productSeasonById[product.id] || "summer";
   const saleMonths = product.saleMonths || productSaleMonthsById[product.id] || defaultSaleMonthsBySeason[season] || [];
+  // Existing catalog rows can still carry the old rolling-12-month wording.
+  // This product's published rights are fixed to January–December 2027.
+  const annual = product.id === "egg-annual-card" ? fallbackProducts.find(item => item.id === product.id) : null;
+  const annualCopy = annual ? Object.fromEntries(["detail", "spec", "categoryLabel", "storage", "delivery", "description", "sceneBody"].map(key => [key, annual[key]])) : {};
   return {
     ...product,
+    ...annualCopy,
     image: SEASONAL_PRODUCT_IMAGE_BY_ID[product.id] || product.image,
     sceneImage: SEASONAL_PRODUCT_IMAGE_BY_ID[product.id] || product.sceneImage || product.image,
     season,
