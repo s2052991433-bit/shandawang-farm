@@ -1,3 +1,4 @@
+import { weatherResponse } from './weather.mjs';
 import { normalizeCards } from "../shared/voucher-import.mjs";
 import { SEASONAL_PRODUCT_IMAGE_BY_ID, SUPPLEMENTAL_PRODUCTS } from "../shared/seasonal-catalog.js";
 
@@ -833,6 +834,7 @@ export default {
       url.hostname = "www.shandawangfarm.com";
       return Response.redirect(url.toString(), 301);
     }
+    if (url.pathname === "/api/weather") return weatherResponse(request, env);
     if (url.pathname.startsWith("/api/")) return handleApi(request, env);
     const response = await env.ASSETS.fetch(request);
     const acceptsHtml = request.headers.get("accept") && request.headers.get("accept").includes("text/html");

@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { weatherResponse } from "./worker/weather.mjs";
 
 export default defineConfig({
   build: {
@@ -15,5 +16,15 @@ export default defineConfig({
       clientFiles: ["./src/main.jsx"],
     },
   },
-  plugins: [react()],
+  plugins: [react(), {
+    name: 'farm-weather-preview',
+    configureServer(server) {
+      server.middlewares.use('/api/weather', async (req, res) => {
+        const response = await weatherResponse(new Request('http://terminal.local/api/weather', {method:req.method}), process.env);
+        res.statusCode=response.status;
+        response.headers.forEach((value,key)=>res.setHeader(key,value));
+        res.end(await response.text());
+      });
+    },
+  }],
 });
