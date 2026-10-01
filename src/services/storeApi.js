@@ -83,7 +83,7 @@ async function request(path, options = {}) {
 export const storeApi = {
   async listProducts() {
     try {
-      const payload = await request("/api/catalog/products");
+      const payload = await request("/api/catalog/products", { signal: AbortSignal.timeout(10000) });
       return payload.products || [];
     } catch (error) {
       if (isLocalPreview()) return null;
@@ -93,7 +93,7 @@ export const storeApi = {
 
   async listFarmLogs() {
     try {
-      const payload = await request("/api/farm-logs");
+      const payload = await request("/api/farm-logs", { signal: AbortSignal.timeout(10000) });
       return payload.logs || [];
     } catch (error) {
       if (isLocalPreview()) return null;

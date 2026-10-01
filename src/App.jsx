@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,6 +24,7 @@ import {
 import { storeApi } from "./services/storeApi";
 import { AdminApp } from "./admin/AdminApp";
 import { FarmCourtyard } from "./components/FarmCourtyard";
+import { CartDrawer } from "./components/CartDrawer";
 import { chinaTime, SEASONS } from "../shared/farm-weather.mjs";
 import { farmCalendar, farmDateKey, publishedFarmLogs } from "../shared/farm-calendar.mjs";
 import { SEASONAL_PRODUCT_IMAGE_BY_ID, SUPPLEMENTAL_PRODUCTS } from "../shared/seasonal-catalog.js";
@@ -477,13 +479,16 @@ function IconButton({ label, children, onClick, className = "" }) {
 
 export function App() {
   const [route, setRoute] = useState(() => parseRoute());
-  const [transitioning, setTransitioning] = useState(false);
+  const transitionRef = useRef(null);
+  const navigationId = useRef(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [panel, setPanel] = useState(null);
   const [notice, setNotice] = useState("");
   const [farmNow, setFarmNow] = useState(() => new Date());
   const [catalogProducts, setCatalogProducts] = useState(allFallbackProducts);
   const [remoteFarmLogs, setRemoteFarmLogs] = useState(null);
+  const [farmLogsStatus, setFarmLogsStatus] = useState(filePreview ? "ready" : "loading");
+  const [farmLogsRequest, setFarmLogsRequest] = useState(0);
   const [cart, setCart] = useState(() => {
     try {
       return JSON.parse(window.localStorage.getItem("shandawang-cart") || "[]");
@@ -498,15 +503,26 @@ export function App() {
   useEffect(() => {
     if (filePreview) return;
     let active = true;
-    Promise.all([storeApi.listProducts(), storeApi.listFarmLogs()]).then(([nextProducts, nextLogs]) => {
+    storeApi.listProducts().then(nextProducts => {
       if (!active) return;
       if (nextProducts?.length) setCatalogProducts(nextProducts.map(normalizeProduct));
-      if (Array.isArray(nextLogs)) setRemoteFarmLogs(nextLogs);
     }).catch(() => {
       // Keep the public storefront available if the backend is temporarily offline.
     });
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (filePreview) return;
+    let active = true;
+    setFarmLogsStatus("loading");
+    storeApi.listFarmLogs().then(nextLogs => {
+      if (!active) return;
+      if (Array.isArray(nextLogs)) setRemoteFarmLogs(nextLogs);
+      setFarmLogsStatus("ready");
+    }).catch(() => { if (active) setFarmLogsStatus("error"); });
+    return () => { active = false; };
+  }, [farmLogsRequest]);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -529,6 +545,9 @@ export function App() {
 
   useEffect(() => {
     const handlePopState = () => {
+      navigationId.current += 1;
+      transitionRef.current?.skipTransition();
+      transitionRef.current = null;
       setRoute(parseRoute());
       setMobileOpen(false);
       setPanel(null);
@@ -572,29 +591,35 @@ export function App() {
   };
 
   const navigate = (path, options = {}) => {
-    if (transitioning || routeLocation() === path) {
-      if (routeLocation() === path) window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const id = ++navigationId.current;
+    transitionRef.current?.skipTransition();
+    transitionRef.current = null;
     setMobileOpen(false);
     setPanel(null);
+    if (routeLocation() === path) {
+      window.scrollTo({ top: 0, behavior: reduceMotion ? "instant" : "smooth" });
+      return;
+    }
+    const from = parseRoute().name;
+    const to = parseRoute(path).name;
+    document.documentElement.dataset.transition = [from, to].includes("home") && [from, to].includes("farm") ? "farm" : "page";
     const commit = () => {
+      if (id !== navigationId.current) return;
       if (options.replace) window.history.replaceState({}, "", historyPath(path));
       else window.history.pushState({}, "", historyPath(path));
-      setRoute(parseRoute(path));
+      flushSync(() => setRoute(parseRoute(path)));
       window.scrollTo({ top: 0, behavior: "instant" });
     };
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!reduceMotion && document.startViewTransition) {
-      setTransitioning(true);
       const transition = document.startViewTransition(commit);
-      transition.finished.finally(() => setTransitioning(false));
-    } else if (!reduceMotion) {
-      setTransitioning(true);
-      window.setTimeout(commit, 240);
-      window.setTimeout(() => setTransitioning(false), 760);
+      transitionRef.current = transition;
+      const clear = () => { if (transitionRef.current === transition) transitionRef.current = null; };
+      transition.finished.then(clear, clear);
+      transition.ready.catch(() => {}); // Superseding navigation intentionally skips the old snapshot.
     } else {
       commit();
+      if (!reduceMotion) document.querySelector("main")?.animate([{ opacity: 0.7 }, { opacity: 1 }], { duration: 200, easing: "ease-out" });
     }
   };
 
@@ -611,7 +636,7 @@ export function App() {
   }
 
   return (
-    <div className={`site-shell ${transitioning ? "is-transitioning" : ""}`} data-route={route.name}>
+    <div className="site-shell" data-route={route.name}>
       <header className="site-header">
         <button className="brand" onClick={() => navigate("/")} aria-label="返回山大王农场首页">
           <span className="brand-mark"><Mountains weight="thin" /></span>
@@ -637,7 +662,7 @@ export function App() {
         {["home", "shop", "farm"].includes(route.name) && <ImmersiveHero variant={route.name} now={farmNow} navigate={navigate} />}
         {route.name === "home" && <HomeContent navigate={navigate} liveFarmLogs={liveFarmLogs} products={displayProducts} now={farmNow} />}
         {route.name === "shop" && <ShopContent addToCart={addToCart} navigate={navigate} products={displayProducts} />}
-        {route.name === "farm" && <FarmContent initialDate={route.date} farmLogs={liveFarmLogs} navigate={navigate} now={farmNow} />}
+        {route.name === "farm" && <FarmContent initialDate={route.date} farmLogs={liveFarmLogs} status={farmLogsStatus} retry={() => setFarmLogsRequest(value => value + 1)} navigate={navigate} now={farmNow} />}
         {route.name === "product" && <ProductPage key={currentProduct.id} product={currentProduct} addToCart={addToCart} navigate={navigate} />}
         {route.name === "about" && <AboutContent navigate={navigate} />}
       </main>
@@ -651,10 +676,7 @@ export function App() {
         <SearchPanel close={() => setPanel(null)} navigate={navigate} products={catalogProducts} />
       )}
 
-      {panel === "cart" && (
-        <div className="overlay" role="dialog" aria-modal="true" aria-label="购物袋">
-          <button className="overlay-backdrop" aria-label="关闭购物袋" onClick={() => setPanel(null)} />
-          <aside className="cart-panel">
+      <CartDrawer open={panel === "cart"} close={() => setPanel(null)}>
             <div className="panel-title"><span>选购与预售</span><IconButton label="关闭" onClick={() => setPanel(null)}><X /></IconButton></div>
             {cart.length === 0 ? (
               <div className="cart-empty">
@@ -678,12 +700,9 @@ export function App() {
                 <button className="button button-primary cart-checkout" onClick={() => navigate("/checkout")}>去结算 <ArrowRight /></button>
               </>
             )}
-          </aside>
-        </div>
-      )}
+      </CartDrawer>
 
       <div className={`toast ${notice ? "is-visible" : ""}`} role="status" aria-live="polite">{notice}</div>
-      <div className="transition-curtain" aria-hidden="true"><span>沿着山路，去下一处</span></div>
     </div>
   );
 }
@@ -732,11 +751,6 @@ function ImmersiveHero({ variant, now, navigate }) {
           <button className="button button-quiet" onClick={() => activate(content.secondary[1])}>{variant === "farm" && <ArrowLeft />} {content.secondary[0]} {variant !== "farm" && <ArrowRight />}</button>
         </div>
       </div>
-      {variant === "home" && (
-        <button className="hero-season-summary" onClick={() => document.querySelector(".season-strip")?.scrollIntoView({ behavior: "smooth" })}>
-          <span>农场四季</span><strong>{calendar.term}</strong><i /><small>{calendar.termNote} · {calendar.lunar}</small><ArrowRight />
-        </button>
-      )}
       <div className="hero-side-note" aria-hidden="true"><span>29°56′N</span><i /><span>NINGBO</span></div>
       <div className="hero-scroll-cue" aria-hidden="true"><span>向下，沿着季节走</span><i /></div>
     </section>
@@ -814,6 +828,13 @@ function ProductGrid({ items, addToCart, navigate }) {
 
 function ProductPage({ product, addToCart, navigate }) {
   const [quantity, setQuantity] = useState(1);
+  const purchaseButton = useRef(null);
+  const [purchaseVisible, setPurchaseVisible] = useState(false);
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => setPurchaseVisible(entry.isIntersecting), { threshold: 0.5 });
+    if (purchaseButton.current) observer.observe(purchaseButton.current);
+    return () => observer.disconnect();
+  }, []);
   return (
     <article className="product-page">
       <button className="page-back" onClick={() => navigate("/shop")}><ArrowLeft /> 回到四季商城</button>
@@ -832,7 +853,7 @@ function ProductPage({ product, addToCart, navigate }) {
           </dl>
           <div className="product-page-buy"><div><small>{product.spec}</small><strong>{money(product.price)}</strong></div><QuantityControl value={quantity} decrease={() => setQuantity((value) => Math.max(1, value - 1))} increase={() => setQuantity((value) => value + 1)} /></div>
           {product.saleMode === "preorder" && <p className="preorder-explainer"><Clock /> 预售商品先锁定批次，成熟与发出时间会在订单和农场日志中同步。</p>}
-          <button className="button button-primary product-add" onClick={() => addToCart(product, quantity)}>{product.saleMode === "preorder" ? "加入预售单" : "加入购物袋"} · {money(product.price * quantity)}</button>
+          <button ref={purchaseButton} className="button button-primary product-add" onClick={() => addToCart(product, quantity)}>{product.saleMode === "preorder" ? "加入预售单" : "加入购物袋"} · {money(product.price * quantity)}</button>
         </div>
       </section>
       <section className="product-story-chapter">
@@ -844,6 +865,10 @@ function ProductPage({ product, addToCart, navigate }) {
         <article><Package weight="thin" /><strong>按属性装箱</strong><p>根据温控、易碎与同箱规则匹配箱型，不让打包临时发挥。</p></article>
         <article><Truck weight="thin" /><strong>发出可追踪</strong><p>接入后台后同步分拣、装箱、发货与物流状态。</p></article>
       </section>
+      {!purchaseVisible && <div className="product-purchase-bar" aria-label="快捷选购">
+        <div className="purchase-bar-summary"><span>{product.id === "egg-annual-card" ? "2027鸡蛋年卡" : product.name}{quantity > 1 ? ` × ${quantity}` : ""}</span><strong>{money(product.price * quantity)}</strong></div>
+        <button className="action primary" onClick={() => addToCart(product, quantity)}>{product.saleMode === "preorder" ? "加入预售单" : "加入购物袋"}</button>
+      </div>}
     </article>
   );
 }
@@ -880,11 +905,13 @@ function SearchPanel({ close, navigate, products }) {
   );
 }
 
-function FarmContent({ initialDate, farmLogs, navigate, now }) {
+function FarmContent({ initialDate, farmLogs, status, retry, navigate, now }) {
   const todayKey = farmDateKey(now);
   const [selectedDate, setSelectedDate] = useState(() => farmLogs.find((day) => day.date === initialDate)?.date || farmLogs[0]?.date);
   useEffect(() => { if (initialDate) setSelectedDate(initialDate); }, [initialDate]);
   const activeDay = farmLogs.find((day) => day.date === selectedDate) || farmLogs[0];
+  if (status === "loading") return <section id="farm-journal" className="farm-journal section-shell journal-loading" aria-busy="true" aria-label="正在加载农场日志"><p className="eyebrow dark">农场日志</p><h2>翻开山里的日常</h2><p role="status">正在读取农事记录…</p><div className="journal-skeleton" aria-hidden="true"><div className="skeleton-line"/><div className="skeleton-image"/><div className="skeleton-line"/></div></section>;
+  if (status === "error") return <section id="farm-journal" className="farm-journal section-shell journal-empty"><p className="eyebrow dark">农场日志</p><h2>记录暂时未能加载</h2><p role="status">连接暂时不顺畅，请重试。已有记录不会受影响。</p><button className="button button-outline" onClick={retry}>重新加载日志</button></section>;
   if (!activeDay) return <section id="farm-journal" className="farm-journal section-shell journal-empty"><p className="eyebrow dark">农场日志</p><h2>等一份新的山间记录</h2><p>暂时没有可查看的农事记录。新的记录发布后，会保留它实际发生的日期。</p><button className="text-link" onClick={() => navigate("/shop")}>先看看当季食物 <ArrowRight/></button></section>;
   const dayLabel = day => day.isExample ? "内容示例" : day.date === todayKey ? "今天" : "农事记录";
 
@@ -1015,9 +1042,12 @@ function FlowHeader({ title, steps, step, close }) {
   return (
     <header className="flow-header">
       <div className="flow-brand"><Mountains weight="thin" /><span><strong>山大王农场</strong><small>{title}</small></span></div>
-      <ol className="flow-steps">
-        {steps.map((label, index) => <li className={index === step ? "is-current" : index < step ? "is-done" : ""} key={label}><span>{index < step ? "✓" : index + 1}</span><small>{label}</small></li>)}
-      </ol>
+      <div className="flow-steps">
+        <p className="flow-progress-mobile">第{step + 1}步 / 共{steps.length}步 <strong>{steps[step]}</strong></p>
+        <ol className="flow-step-list" aria-label={`${title}步骤`}>
+          {steps.map((label, index) => <li className={index === step ? "is-current" : index < step ? "is-done" : ""} aria-current={index === step ? "step" : undefined} key={label}><span aria-hidden="true">{index < step ? "✓" : index + 1}</span><small>{label}</small></li>)}
+        </ol>
+      </div>
       <IconButton label={`关闭${title}`} onClick={close}><X /></IconButton>
     </header>
   );
@@ -1136,7 +1166,6 @@ function CheckoutFlow({ cart, close, complete }) {
 
 function VoucherFlow({ close, products, initialKind }) {
   const [entryKind, setEntryKind] = useState(initialKind === "annual" ? "annual" : "gift");
-  const steps = ["验券", "选食物", "补差加购", "收货信息", "确认", "完成"];
   const [step, setStep] = useState(0);
   const [code, setCode] = useState("");
   const [voucher, setVoucher] = useState(null);
@@ -1147,8 +1176,15 @@ function VoucherFlow({ close, products, initialKind }) {
   const [addressError, setAddressError] = useState("");
   const [payment, setPayment] = useState("wechat");
   const [redemption, setRedemption] = useState(null);
+  const flowRef = useRef(null);
+  const previousStepRef = useRef(step);
+  const requestPendingRef = useRef(false);
+  const mountedRef = useRef(true);
 
   const isAnnualCard = voucher?.type === "annual_card";
+  const showsAnnualFlow = voucher ? isAnnualCard : entryKind === "annual";
+  const steps = showsAnnualFlow ? ["验证卡密", "收货信息", "确认配送计划", "激活成功"] : ["验券", "选食物", "补差加购", "收货信息", "确认", "完成"];
+  const displayStep = showsAnnualFlow ? [0, 3, 4, 5].indexOf(step) : step;
   const selectedItems = products.filter((product) => quantities[product.id] > 0).map((product) => ({ ...product, quantity: quantities[product.id] }));
   const subtotal = isAnnualCard ? voucher.value : selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shipping = isAnnualCard || selectedItems.length === 0 ? 0 : subtotal >= 199 ? 0 : 18;
@@ -1156,17 +1192,58 @@ function VoucherFlow({ close, products, initialKind }) {
   const topUpAmount = Math.max(0, subtotal + shipping - credit);
   const remaining = isAnnualCard ? 0 : Math.max(0, (voucher?.balance || 0) - subtotal - shipping);
 
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    if (previousStepRef.current === step) return;
+    previousStepRef.current = step;
+    const heading = flowRef.current?.querySelector("main h1");
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+      flowRef.current.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }, [step]);
+
+  const returnToValidation = (kind = entryKind) => {
+    if (requestPendingRef.current) return;
+    setEntryKind(kind);
+    setVoucher(null);
+    setCode("");
+    setQuantities({});
+    setAddress(emptyAddress);
+    setAddressError("");
+    setPayment("wechat");
+    setRedemption(null);
+    setError("");
+    setStep(0);
+  };
+
+  const goToStep = (nextStep) => {
+    if (requestPendingRef.current) return;
+    setError("");
+    setStep(nextStep);
+  };
+
   const validateCode = async () => {
+    if (requestPendingRef.current) return;
     if (!code.trim()) { setError("请输入卡券兑换码"); return; }
+    requestPendingRef.current = true;
     setLoading(true); setError("");
     try {
       const result = await storeApi.validateVoucher(code);
+      if (!mountedRef.current) return;
       setVoucher(result);
+      setEntryKind(result.type === "annual_card" ? "annual" : "gift");
       setStep(result.type === "annual_card" ? 3 : 1);
     } catch (validationError) {
-      setError(validationError.message);
+      if (mountedRef.current) setError(validationError.message || "卡密验证失败，请稍后重试");
     } finally {
-      setLoading(false);
+      requestPendingRef.current = false;
+      if (mountedRef.current) setLoading(false);
     }
   };
 
@@ -1174,56 +1251,62 @@ function VoucherFlow({ close, products, initialKind }) {
 
   const nextAddress = () => {
     if (!isAddressComplete(address)) { setAddressError("请完整填写地址，并确认手机号为11位"); return; }
-    setAddressError(""); setStep(4);
+    setAddressError(""); goToStep(4);
   };
 
   const submit = async () => {
-    setLoading(true);
+    if (requestPendingRef.current || !voucher || step !== 4) return;
+    requestPendingRef.current = true;
+    setLoading(true); setError("");
     try {
       const created = await storeApi.createRedemption({ voucherId: voucher.id, voucherCode: voucher.code, items: selectedItems, address, subtotal, shipping, credit, topUpAmount, payment });
+      if (!mountedRef.current) return;
       setRedemption(created); setStep(5);
-    } catch (submitError) { setError(submitError.message); } finally {
-      setLoading(false);
+    } catch (submitError) {
+      if (mountedRef.current) setError(submitError.message || "兑换提交失败，请稍后重试");
+    } finally {
+      requestPendingRef.current = false;
+      if (mountedRef.current) setLoading(false);
     }
   };
 
   return (
-    <div className="commerce-flow voucher-flow" role="dialog" aria-modal="true" aria-label="卡券兑换">
-      <FlowHeader title="卡券兑换" steps={steps} step={step} close={close} />
+    <div className="commerce-flow voucher-flow" ref={flowRef} role="dialog" aria-modal="true" aria-label={showsAnnualFlow ? "年卡激活" : "卡券兑换"}>
+      <FlowHeader title={showsAnnualFlow ? "年卡激活" : "卡券兑换"} steps={steps} step={displayStep} close={close} />
       <main className="flow-main">
-        {step === 0 && <FlowSection eyebrow="01 · 卡券校验" title={entryKind === "annual" ? "激活这一年的山林鲜蛋" : "兑换一份当季好味"} intro={entryKind === "annual" ? "只需输入卡密。2027年1月至12月，每月30枚，共12次配送。" : "只需输入卡密，查看余额、有效期与可兑换食物。"}>
-          <div className="voucher-kind-switch" role="group" aria-label="卡券类型"><button aria-pressed={entryKind === "annual"} onClick={() => setEntryKind("annual")}>鸡蛋年卡</button><button aria-pressed={entryKind === "gift"} onClick={() => setEntryKind("gift")}>时令礼赠卡</button></div>
+        {step === 0 && <FlowSection eyebrow={entryKind === "annual" ? "01 · 验证卡密" : "01 · 卡券校验"} title={entryKind === "annual" ? <><span>激活年卡</span><span>开启一年的鲜蛋配送</span></> : "兑换一份当季好味"} titleClassName={entryKind === "annual" ? "annual-activation-title" : undefined} intro={entryKind === "annual" ? "只需输入卡密。2027年1月至12月，每月30枚，共12次配送。" : "只需输入卡密，查看余额、有效期与可兑换食物。"}>
+          <div className="voucher-kind-switch" role="group" aria-label="卡券类型"><button disabled={loading} aria-pressed={entryKind === "annual"} onClick={() => entryKind !== "annual" && returnToValidation("annual")}>鸡蛋年卡</button><button disabled={loading} aria-pressed={entryKind === "gift"} onClick={() => entryKind !== "gift" && returnToValidation("gift")}>时令礼赠卡</button></div>
           <div className="voucher-code-card"><Ticket weight="thin" /><div><span>山大王农场</span><strong>{entryKind === "annual" ? "鸡蛋年卡" : "时令礼赠卡"}</strong><small>SHAN DA WANG FARM</small></div></div>
-          <div className="voucher-code-input"><input type="password" aria-label="卡密或兑换码" value={code} onChange={(event) => setCode(event.target.value)} onKeyDown={(event) => event.key === "Enter" && validateCode()} placeholder="请输入兑换码" /><button className="button button-primary" disabled={loading} onClick={validateCode}>{loading ? "正在校验…" : "验证卡券"}</button></div>
-          <p className="voucher-type-note">验证后将按这张卡的实际权益进入对应流程，无需输入卡号。</p>
-          {error && <p className="form-error">{error}</p>}
+          <div className="voucher-code-input"><input type="password" aria-label="卡密或兑换码" aria-invalid={Boolean(error)} aria-describedby={error ? "voucher-code-note voucher-code-error" : "voucher-code-note"} disabled={loading} value={code} onChange={(event) => { if (!requestPendingRef.current) { setCode(event.target.value); setError(""); } }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); validateCode(); } }} placeholder="请输入兑换码" /><button className="button button-primary" disabled={loading} onClick={validateCode}>{loading ? "正在校验…" : "验证卡券"}</button></div>
+          <p className="voucher-type-note" id="voucher-code-note">验证后将按这张卡的实际权益进入对应流程，无需输入卡号。</p>
+          {error && <p className="form-error" id="voucher-code-error" role="alert">{error}</p>}
         </FlowSection>}
 
         {step === 1 && voucher && <FlowSection eyebrow="02 · 选择食物" title="用这张卡，选这一季" intro={`卡券余额 ${money(voucher.balance)}，有效期至 ${voucher.expiresAt}。`}>
           <VoucherBalance voucher={voucher} subtotal={subtotal} shipping={shipping} remaining={remaining} topUpAmount={topUpAmount} />
           <div className="voucher-products">{products.filter((product) => voucher.eligibleProductIds.includes(product.id)).map((product) => <VoucherProduct key={product.id} product={product} quantity={quantities[product.id] || 0} change={(delta) => changeVoucherQuantity(product.id, delta)} />)}</div>
-          <FlowActions back={() => setStep(0)}><button className="button button-primary" disabled={!selectedItems.length} onClick={() => setStep(2)}>查看补差与加购 <ArrowRight /></button></FlowActions>
+          <FlowActions back={() => returnToValidation()}><button className="button button-primary" disabled={!selectedItems.length} onClick={() => goToStep(2)}>查看补差与加购 <ArrowRight /></button></FlowActions>
         </FlowSection>}
 
         {step === 2 && voucher && <FlowSection eyebrow="03 · 补差与加购" title="余额不浪费，喜欢的也能多带一点" intro="超过卡券余额的部分可以补差；没有用完的余额会继续保留在卡中。">
           <VoucherBalance voucher={voucher} subtotal={subtotal} shipping={shipping} remaining={remaining} topUpAmount={topUpAmount} />
           <div className="add-on-list">{products.map((product) => <article key={product.id}><img className={product.id === "egg-annual-card" ? "is-card-cover" : undefined} src={product.image} alt={product.name} /><div><strong>{product.name}</strong><span>{money(product.price)} · {product.spec}</span></div><QuantityControl compact value={quantities[product.id] || 0} decrease={() => changeVoucherQuantity(product.id, -1)} increase={() => changeVoucherQuantity(product.id, 1)} /></article>)}</div>
-          <FlowActions back={() => setStep(1)}><button className="button button-primary" disabled={!selectedItems.length} onClick={() => setStep(3)}>填写收货地址 <ArrowRight /></button></FlowActions>
+          <FlowActions back={() => goToStep(1)}><button className="button button-primary" disabled={!selectedItems.length} onClick={() => goToStep(3)}>填写收货地址 <ArrowRight /></button></FlowActions>
         </FlowSection>}
 
-        {step === 3 && <FlowSection eyebrow="04 · 收货信息" title={isAnnualCard ? "2027年的鲜蛋，送到哪里" : "礼物送到哪里"} intro={isAnnualCard ? "激活后将建立2027年1月至12月的月度寄送计划。" : "需要冷链的商品会按地址和批次安排发出。"}>
+        {step === 3 && <FlowSection eyebrow={isAnnualCard ? "02 · 收货信息" : "04 · 收货信息"} title={isAnnualCard ? "2027年的鲜蛋，送到哪里" : "礼物送到哪里"} intro={isAnnualCard ? "激活后将建立2027年1月至12月的月度寄送计划。" : "需要冷链的商品会按地址和批次安排发出。"}>
           {isAnnualCard && <div className="annual-redemption-summary"><Ticket weight="thin" /><div><span>2027散养鸡蛋年卡</span><strong>激活以后，月月送到</strong><p>2027年1月开始发货，连续12个月；每月1箱，每箱30枚散养鸡蛋。</p></div></div>}
           <AddressForm value={address} onChange={setAddress} error={addressError} />
-          <FlowActions back={() => setStep(isAnnualCard ? 0 : 2)}><button className="button button-primary" onClick={nextAddress}>{isAnnualCard ? "确认激活年卡" : "确认兑换内容"} <ArrowRight /></button></FlowActions>
+          <FlowActions back={() => isAnnualCard ? returnToValidation() : goToStep(2)}><button className="button button-primary" onClick={nextAddress}>{isAnnualCard ? "确认配送计划" : "确认兑换内容"} <ArrowRight /></button></FlowActions>
         </FlowSection>}
 
-        {step === 4 && voucher && <FlowSection eyebrow="05 · 确认兑换" title={isAnnualCard ? "确认以后，建立一整年的寄送计划" : "核对无误，就按这里发出"} intro={isAnnualCard ? "卡密只能激活一次，确认前请核对收货人和长期有效的收货地址。" : "提交后将锁定卡券额度；补差金额会进入支付。"}>
+        {step === 4 && voucher && <FlowSection eyebrow={isAnnualCard ? "03 · 确认配送计划" : "05 · 确认兑换"} title={isAnnualCard ? "确认这一年的配送安排" : "核对无误，就按这里发出"} intro={isAnnualCard ? "卡密只能激活一次，确认前请核对收货人和长期有效的收货地址。" : "提交后将锁定卡券额度；补差金额会进入支付。"}>
           {isAnnualCard ? <div className="annual-plan-grid"><article><span>开始时间</span><strong>2027年1月</strong></article><article><span>寄送周期</span><strong>连续12个月</strong></article><article><span>每月内容</span><strong>1箱 × 30枚</strong></article></div> : <OrderLineList items={selectedItems} />}
-          <div className="confirm-address"><MapPin /><div><strong>{address.receiver} · {address.phone}</strong><p>{address.province}{address.city}{address.district}{address.detail}</p></div><button onClick={() => setStep(3)}>修改</button></div>
-          {topUpAmount > 0 && <div className="option-section"><h3>补差支付</h3><div className="option-grid"><OptionCard selected={payment === "wechat"} onClick={() => setPayment("wechat")} icon={<Wallet />} title="微信支付" note="兑换提交后唤起" /><OptionCard selected={payment === "alipay"} onClick={() => setPayment("alipay")} icon={<Wallet />} title="支付宝" note="兑换提交后唤起" /></div></div>}
+          <div className="confirm-address"><MapPin /><div><strong>{address.receiver} · {address.phone}</strong><p>{address.province}{address.city}{address.district}{address.detail}</p></div><button disabled={loading} onClick={() => goToStep(3)}>修改</button></div>
+          {topUpAmount > 0 && <div className="option-section"><h3>补差支付</h3><div className="option-grid"><OptionCard selected={payment === "wechat"} onClick={() => { if (!requestPendingRef.current) setPayment("wechat"); }} icon={<Wallet />} title="微信支付" note="兑换提交后唤起" /><OptionCard selected={payment === "alipay"} onClick={() => { if (!requestPendingRef.current) setPayment("alipay"); }} icon={<Wallet />} title="支付宝" note="兑换提交后唤起" /></div></div>}
           {!isAnnualCard && <CheckoutSummary subtotal={subtotal} shipping={shipping} credit={credit} totalLabel={topUpAmount > 0 ? "需要补差" : "无需补差"} />}
           {error && <p className="form-error" role="alert">{error}</p>}
-          <FlowActions back={() => setStep(3)}><button className="button button-primary" disabled={loading} onClick={submit}>{loading ? "正在提交…" : isAnnualCard ? "确认激活年卡" : topUpAmount > 0 ? `确认兑换并补差 ${money(topUpAmount)}` : "确认兑换"}</button></FlowActions>
+          <FlowActions back={loading ? undefined : () => goToStep(3)}><button className="button button-primary" disabled={loading} onClick={submit}>{loading ? "正在提交…" : isAnnualCard ? "确认激活年卡" : topUpAmount > 0 ? `确认兑换并补差 ${money(topUpAmount)}` : "确认兑换"}</button></FlowActions>
         </FlowSection>}
 
         {step === 5 && redemption && <ResultSection icon={<Package weight="thin" />} title={isAnnualCard ? "年卡已经激活" : "兑换已经提交"} id={redemption.orderNo || redemption.id} note={isAnnualCard ? "2027年1月至12月的12次寄送计划已经建立，可在农场后台逐月安排装箱和物流。" : topUpAmount > 0 ? "兑换单已生成，完成补差支付后将按商品批次安排发出。" : "卡券额度已经核销，兑换单已进入农场后台。"} close={close} />}
@@ -1232,8 +1315,8 @@ function VoucherFlow({ close, products, initialKind }) {
   );
 }
 
-function FlowSection({ eyebrow, title, intro, children }) {
-  return <section className="flow-section"><div className="flow-section-heading"><p>{eyebrow}</p><h1>{title}</h1><span>{intro}</span></div>{children}</section>;
+function FlowSection({ eyebrow, title, titleClassName, intro, children }) {
+  return <section className="flow-section"><div className="flow-section-heading"><p>{eyebrow}</p><h1 className={titleClassName} tabIndex={-1}>{title}</h1><span>{intro}</span></div>{children}</section>;
 }
 
 function FlowActions({ back, children }) {
